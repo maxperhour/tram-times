@@ -437,6 +437,102 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* ── Stop picker ── */
+    .picker-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 10;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .picker-overlay.open {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .picker-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-width: 430px;
+      margin: 0 auto;
+      background: #0D0D1A;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      z-index: 11;
+      max-height: 72vh;
+      display: flex;
+      flex-direction: column;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .picker-sheet.open {
+      transform: translateY(0);
+    }
+
+    .picker-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      margin: 12px auto 0;
+      flex-shrink: 0;
+    }
+
+    .picker-header {
+      padding: 16px 20px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .picker-list {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      flex: 1;
+    }
+
+    .picker-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.12s ease;
+    }
+
+    .picker-row:active { background: rgba(255,255,255,0.05); }
+
+    .picker-row.selected { background: var(--amber-glow); }
+
+    .picker-stop-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .picker-row.selected .picker-stop-name { color: var(--amber); }
+
+    .picker-dist {
+      font-size: 12px;
+      color: var(--text-dim);
+      flex-shrink: 0;
+      margin-left: 12px;
+    }
   </style>
 </head>
 <body>
@@ -458,6 +554,14 @@
   </header>
 
   <div id="content" style="flex:1;display:flex;flex-direction:column;"></div>
+
+  <!-- Stop picker bottom sheet -->
+  <div class="picker-overlay" id="picker-overlay"></div>
+  <div class="picker-sheet" id="picker-sheet">
+    <div class="picker-handle"></div>
+    <div class="picker-header">Choose a stop</div>
+    <div class="picker-list" id="picker-list"></div>
+  </div>
 
   <!-- Footer lives outside #content so it never gets wiped on re-render -->
   <div class="footer" id="footer" style="display:none;">
@@ -880,13 +984,56 @@ async function doInit() {
 // Persistent refresh button
 btnRefresh.addEventListener('click', doRefresh);
 
-// Pin button — delegated on content since it re-renders
+// ── Stop picker ──────────────────────────────────────────────────────────────
+const pickerOverlay = document.getElementById('picker-overlay');
+const pickerSheet   = document.getElementById('picker-sheet');
+const pickerList    = document.getElementById('picker-list');
+
+function openPicker() {
+  if (!userLat) return;
+
+  // Build list of all known stops sorted by distance from user
+  const pinned = getPinned();
+  const rows = Object.entries(STOPS)
+    .map(([name, [lat, lng]]) => ({ name, dist: haversine(userLat, userLng, lat, lng) }))
+    .sort((a, b) => a.dist - b.dist)
+    .map(({ name, dist }) => {
+      const sel = pinned === name ? 'selected' : '';
+      return `<div class="picker-row ${sel}" data-stop="${name}">
+        <span class="picker-stop-name">${name}</span>
+        <span class="picker-dist">${fmtDist(dist)}</span>
+      </div>`;
+    }).join('');
+
+  pickerList.innerHTML = rows;
+  pickerOverlay.classList.add('open');
+  pickerSheet.classList.add('open');
+
+  // Scroll selected stop into view
+  pickerSheet.querySelector('.selected')?.scrollIntoView({ block: 'center' });
+}
+
+function closePicker() {
+  pickerOverlay.classList.remove('open');
+  pickerSheet.classList.remove('open');
+}
+
+pickerOverlay.addEventListener('click', closePicker);
+
+pickerList.addEventListener('click', e => {
+  const row = e.target.closest('.picker-row');
+  if (!row) return;
+  const stopName = row.dataset.stop;
+  if (getPinned() === stopName) unpinStop(); else pinStop(stopName);
+  closePicker();
+  doRefresh();
+});
+
+// Pin button opens picker instead of toggling directly
 content.addEventListener('click', e => {
   const btn = e.target.closest('.btn-pin');
   if (!btn) return;
-  const stopName = btn.dataset.stop;
-  if (getPinned() === stopName) unpinStop(); else pinStop(stopName);
-  doRefresh();
+  openPicker();
 });
 
 doInit();
