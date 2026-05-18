@@ -147,12 +147,41 @@
       margin-bottom: 6px;
     }
 
+    .stop-name-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .stop-name {
       font-size: 34px;
       font-weight: 800;
       letter-spacing: -0.025em;
       line-height: 1.05;
       color: var(--text);
+    }
+
+    .btn-pin {
+      flex-shrink: 0;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: none;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-dim);
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.18s ease;
+      margin-bottom: -2px;
+    }
+
+    .btn-pin.pinned {
+      background: var(--amber-glow);
+      border-color: var(--amber-ring);
+      color: var(--amber);
     }
 
     .stop-meta {
@@ -684,7 +713,16 @@ function renderDeparture(d) {
     </div>`;
 }
 
-function renderDepartures(nearest, deps) {
+const PIN_SVG = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+  <path d="M8.5 1L12 4.5L8.5 8H7L5 6V4.5L8.5 1Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/>
+  <path d="M5 6L2 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+</svg>`;
+
+function getPinned()       { return localStorage.getItem('pinnedStop'); }
+function pinStop(name)     { localStorage.setItem('pinnedStop', name); }
+function unpinStop()       { localStorage.removeItem('pinnedStop'); }
+
+function renderDepartures(nearest, deps, isPinned) {
   const rows = deps.length
     ? deps.slice(0, 8).map(renderDeparture).join('')
     : `<div class="state-wrap" style="justify-content:flex-start;padding-top:40px;">
@@ -693,11 +731,18 @@ function renderDepartures(nearest, deps) {
          <div class="state-body">No live departures at ${nearest.name} right now.</div>
        </div>`;
 
+  const meta = isPinned
+    ? `${fmtDist(nearest.dist)} &middot; Pinned`
+    : fmtDist(nearest.dist);
+
   return `
     <div class="stop-hero">
-      <div class="stop-eyebrow">Nearest stop</div>
-      <div class="stop-name">${nearest.name}</div>
-      <div class="stop-meta">${fmtDist(nearest.dist)}</div>
+      <div class="stop-eyebrow">${isPinned ? 'Pinned stop' : 'Nearest stop'}</div>
+      <div class="stop-name-row">
+        <div class="stop-name">${nearest.name}</div>
+        <button class="btn-pin ${isPinned ? 'pinned' : ''}" data-stop="${nearest.name}">${PIN_SVG}</button>
+      </div>
+      <div class="stop-meta">${meta}</div>
     </div>
     <div class="departures">${rows}</div>`;
 }
@@ -757,15 +802,26 @@ function setRefreshing(on) {
   btnRefresh.disabled = on;
 }
 
+function resolveStop(data) {
+  const pinned = getPinned();
+  if (pinned) {
+    const coordKey = Object.keys(STOPS).find(k => k.toLowerCase() === pinned.toLowerCase());
+    const dist = coordKey ? haversine(userLat, userLng, STOPS[coordKey][0], STOPS[coordKey][1]) : 0;
+    return { name: pinned, dist, isPinned: true };
+  }
+  const nearest = findNearest(userLat, userLng, data);
+  return nearest ? { ...nearest, isPinned: false } : null;
+}
+
 async function doRefresh() {
   if (!userLat || refreshing) return;
   setRefreshing(true);
   try {
     const data = await fetchTrams();
-    const nearest = findNearest(userLat, userLng, data);
-    if (!nearest) throw new Error('No stops found nearby.');
-    const deps = extractDepartures(data, nearest.name);
-    content.innerHTML = renderDepartures(nearest, deps);
+    const stop = resolveStop(data);
+    if (!stop) throw new Error('No stops found nearby.');
+    const deps = extractDepartures(data, stop.name);
+    content.innerHTML = renderDepartures(stop, deps, stop.isPinned);
     setUpdated(new Date());
     setStatus('live');
   } catch (e) {
@@ -802,16 +858,14 @@ async function doInit() {
 
   try {
     const data = await fetchTrams();
-    const nearest = findNearest(userLat, userLng, data);
-
-    if (!nearest) {
+    const stop = resolveStop(data);
+    if (!stop) {
       content.innerHTML = renderError("Couldn't match your location to a tram stop. Are you near the Metrolink network?");
       setStatus('error');
       return;
     }
-
-    const deps = extractDepartures(data, nearest.name);
-    content.innerHTML = renderDepartures(nearest, deps);
+    const deps = extractDepartures(data, stop.name);
+    content.innerHTML = renderDepartures(stop, deps, stop.isPinned);
     setUpdated(new Date());
     setStatus('live');
 
@@ -823,8 +877,17 @@ async function doInit() {
   }
 }
 
-// Persistent refresh button — never gets wiped
+// Persistent refresh button
 btnRefresh.addEventListener('click', doRefresh);
+
+// Pin button — delegated on content since it re-renders
+content.addEventListener('click', e => {
+  const btn = e.target.closest('.btn-pin');
+  if (!btn) return;
+  const stopName = btn.dataset.stop;
+  if (getPinned() === stopName) unpinStop(); else pinStop(stopName);
+  doRefresh();
+});
 
 doInit();
 
