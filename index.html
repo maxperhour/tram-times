@@ -550,17 +550,23 @@ const STOPS = {
 };
 
 // ── API ──────────────────────────────────────────────────────────────────────
-const API_URL   = 'https://europe-west2-tramsfunc.cloudfunctions.net/tramsfunc';
-const PROXY_URL = 'https://corsproxy.io/?' + encodeURIComponent(API_URL);
+const API_BASE = 'https://europe-west2-tramsfunc.cloudfunctions.net/tramsfunc';
 
 async function fetchTrams() {
-  for (const url of [API_URL, PROXY_URL]) {
+  // Timestamp busts any CDN or proxy cache on every call
+  const url   = `${API_BASE}?t=${Date.now()}`;
+  const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
+
+  for (const endpoint of [url, proxy]) {
     try {
-      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      const res = await fetch(endpoint, {
+        signal: AbortSignal.timeout(10000),
+        cache: 'no-store',
+      });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return await res.json();
     } catch (e) {
-      if (url === PROXY_URL) throw e;
+      if (endpoint === proxy) throw e;
     }
   }
 }
