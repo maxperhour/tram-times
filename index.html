@@ -606,7 +606,7 @@ function extractDepartures(apiData, stopName) {
       if (!dest) continue;
 
       const waitNum = parseInt(waitRaw);
-      const isDue   = status === 'Due' || waitNum === 0 || waitRaw === '0';
+      const isDue   = waitNum === 0 || waitRaw === '0';
       const wait    = isNaN(waitNum) ? 0 : waitNum;
 
       deps.push({ dest, wait, isDue, carriages: car, direction: entry.Direction });
