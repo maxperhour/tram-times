@@ -712,17 +712,19 @@ function renderError(msg) {
     </div>`;
 }
 
-function renderNoLocation(denied) {
+function renderNoLocation(code) {
+  const messages = {
+    1: 'Permission denied. On iPhone: Settings → Privacy & Security → Location Services → Safari → set to "While Using". Then reload.',
+    2: "Your location couldn’t be determined. Make sure Location Services is on.",
+    3: 'Location timed out. Check Location Services is enabled for Safari in iPhone Settings.',
+  };
+  const body = messages[code] || 'Allow location access to find your nearest tram stop.';
   return `
     <div class="state-wrap">
       <div class="state-glyph">📍</div>
       <div class="state-title">Location needed</div>
-      <div class="state-body">${
-        denied
-          ? 'Location permission was denied. Enable it in your browser settings to find your nearest stop.'
-          : 'Allow location access so the app can find your nearest tram stop.'
-      }</div>
-      ${denied ? '' : `<button class="btn-action" onclick="doInit()">Allow location</button>`}
+      <div class="state-body">${body}</div>
+      <button class="btn-action" id="btn-locate">Try again</button>
     </div>`;
 }
 
@@ -783,14 +785,15 @@ async function doInit() {
     pos = await new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(resolve, reject, {
         enableHighAccuracy: false,
-        timeout: 10000,
-        maximumAge: 60000,
+        timeout: 15000,
+        maximumAge: 0,
       });
     });
   } catch (e) {
-    const denied = e.code === 1;
-    content.innerHTML = renderNoLocation(denied);
+    content.innerHTML = renderNoLocation(e.code);
     setStatus('error');
+    // Wire up Try Again button via delegation since it's inside content
+    document.getElementById('btn-locate')?.addEventListener('click', doInit);
     return;
   }
 
