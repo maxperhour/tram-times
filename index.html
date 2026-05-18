@@ -404,13 +404,16 @@
       0%   { background-position: 100% 0; }
       100% { background-position: -100% 0; }
     }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
 </head>
 <body>
 <div id="app">
   <header class="header">
     <div class="brand">
-      <!-- Hexagon mark — nod to the Bee Network without being a knockoff -->
       <svg class="hex-mark" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M15 1.5L27 8.25V21.75L15 28.5L3 21.75V8.25L15 1.5Z"
               stroke="#F0A020" stroke-width="1.5" opacity="0.5"/>
@@ -426,6 +429,18 @@
   </header>
 
   <div id="content" style="flex:1;display:flex;flex-direction:column;"></div>
+
+  <!-- Footer lives outside #content so it never gets wiped on re-render -->
+  <div class="footer" id="footer" style="display:none;">
+    <span class="updated" id="updated-time"></span>
+    <button class="btn-refresh" id="btn-refresh">
+      <svg id="refresh-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M10.5 6A4.5 4.5 0 1 1 6 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M6 1.5L8 3.5M6 1.5L8 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Refresh
+    </button>
+  </div>
 </div>
 
 <script>
@@ -669,7 +684,7 @@ function renderDeparture(d) {
     </div>`;
 }
 
-function renderDepartures(nearest, deps, updatedAt) {
+function renderDepartures(nearest, deps) {
   const rows = deps.length
     ? deps.slice(0, 8).map(renderDeparture).join('')
     : `<div class="state-wrap" style="justify-content:flex-start;padding-top:40px;">
@@ -684,17 +699,7 @@ function renderDepartures(nearest, deps, updatedAt) {
       <div class="stop-name">${nearest.name}</div>
       <div class="stop-meta">${fmtDist(nearest.dist)}</div>
     </div>
-    <div class="departures">${rows}</div>
-    <div class="footer">
-      <span class="updated">Updated ${fmtTime(updatedAt)}</span>
-      <button class="btn-refresh" onclick="doRefresh()">
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M10.5 6A4.5 4.5 0 1 1 6 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M6 1.5L8 3.5M6 1.5L8 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        Refresh
-      </button>
-    </div>`;
+    <div class="departures">${rows}</div>`;
 }
 
 function renderError(msg) {
@@ -724,33 +729,53 @@ function renderNoLocation(denied) {
 // ── State ─────────────────────────────────────────────────────────────────────
 let userLat = null, userLng = null;
 let refreshTimer = null;
+let refreshing = false;
 
 const content     = document.getElementById('content');
 const statusPill  = document.getElementById('status-pill');
 const statusLabel = document.getElementById('status-label');
+const footer      = document.getElementById('footer');
+const updatedTime = document.getElementById('updated-time');
+const btnRefresh  = document.getElementById('btn-refresh');
+const refreshIcon = document.getElementById('refresh-icon');
 
 function setStatus(state) {
   statusPill.className = 'status-pill ' + state;
   statusLabel.textContent = { live: 'Live', loading: 'Loading', error: 'Error' }[state] || state;
 }
 
+function setUpdated(date) {
+  updatedTime.textContent = 'Updated ' + fmtTime(date);
+  footer.style.display = 'flex';
+}
+
+function setRefreshing(on) {
+  refreshing = on;
+  refreshIcon.style.animation = on ? 'spin 0.7s linear infinite' : '';
+  btnRefresh.disabled = on;
+}
+
 async function doRefresh() {
-  if (!userLat) return;
+  if (!userLat || refreshing) return;
+  setRefreshing(true);
   try {
     const data = await fetchTrams();
     const nearest = findNearest(userLat, userLng, data);
     if (!nearest) throw new Error('No stops found nearby.');
     const deps = extractDepartures(data, nearest.name);
-    content.innerHTML = renderDepartures(nearest, deps, new Date());
+    content.innerHTML = renderDepartures(nearest, deps);
+    setUpdated(new Date());
     setStatus('live');
   } catch (e) {
     setStatus('error');
-    // Keep existing content if available, just update status
+  } finally {
+    setRefreshing(false);
   }
 }
 
 async function doInit() {
   content.innerHTML = renderLoading();
+  footer.style.display = 'none';
   setStatus('loading');
 
   let pos;
@@ -783,7 +808,8 @@ async function doInit() {
     }
 
     const deps = extractDepartures(data, nearest.name);
-    content.innerHTML = renderDepartures(nearest, deps, new Date());
+    content.innerHTML = renderDepartures(nearest, deps);
+    setUpdated(new Date());
     setStatus('live');
 
     clearInterval(refreshTimer);
@@ -794,10 +820,8 @@ async function doInit() {
   }
 }
 
-// Tap anywhere to refresh (once running)
-document.getElementById('app').addEventListener('click', e => {
-  if (userLat && !e.target.closest('button')) doRefresh();
-});
+// Persistent refresh button — never gets wiped
+btnRefresh.addEventListener('click', doRefresh);
 
 doInit();
 
