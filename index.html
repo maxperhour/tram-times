@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Tram">
+  <meta name="theme-color" content="#06060F">
+  <title>Tram Times</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #06060F;
+      --surface:     rgba(255,255,255,0.038);
+      --border:      rgba(255,255,255,0.08);
+      --amber:       #F0A020;
+      --amber-glow:  rgba(240,160,32,0.12);
+      --amber-ring:  rgba(240,160,32,0.28);
+      --text:        #EAEAF8;
+      --text-mid:    rgba(234,234,248,0.55);
+      --text-dim:    rgba(234,234,248,0.30);
+      --due:         #3EEEA0;
+      --due-glow:    rgba(62,238,160,0.12);
+      --safe-top:    env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    html, body {
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    /* Subtle dot-grid texture */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(rgba(240,160,32,0.09) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Ambient glow at top */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -120px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 360px;
+      height: 280px;
+      background: radial-gradient(ellipse, rgba(240,160,32,0.07) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    #app {
+      position: relative;
+      z-index: 1;
+      max-width: 430px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 32px);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 36px;
+      padding-top: 4px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hex-mark {
+      width: 30px;
+      height: 30px;
+      flex-shrink: 0;
+    }
+
+    .brand-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--amber);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 12px;
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      background: var(--surface);
+    }
+
+    .status-pill.live { color: var(--due); border-color: rgba(62,238,160,0.22); }
+    .status-pill.live .dot { background: var(--due); animation: pulse 2.4s ease-in-out infinite; }
+
+    .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--text-dim);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(62,238,160,0.4); }
+      50%       { opacity: 0.6; box-shadow: 0 0 0 4px rgba(62,238,160,0); }
+    }
+
+    /* ── Stop hero ── */
+    .stop-hero {
+      margin-bottom: 24px;
+    }
+
+    .stop-eyebrow {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+    }
+
+    .stop-name {
+      font-size: 34px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      line-height: 1.05;
+      color: var(--text);
+    }
+
+    .stop-meta {
+      margin-top: 5px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    /* ── Departure list ── */
+    .departures {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      flex: 1;
+    }
+
+    .dep-row {
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 15px 18px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    /* Left accent bar */
+    .dep-row::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 12%; bottom: 12%;
+      width: 3px;
+      border-radius: 0 2px 2px 0;
+      background: var(--amber);
+      opacity: 0.55;
+      transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    .dep-row.due-now {
+      background: var(--due-glow);
+      border-color: rgba(62,238,160,0.18);
+    }
+
+    .dep-row.due-now::before {
+      background: var(--due);
+      opacity: 1;
+    }
+
+    .dep-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .dep-dest {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--text);
+    }
+
+    .dep-sub {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 3px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .carriage-pip {
+      display: inline-flex;
+      gap: 2px;
+    }
+
+    .carriage-pip i {
+      display: block;
+      width: 6px;
+      height: 6px;
+      border-radius: 1.5px;
+      background: currentColor;
+      opacity: 0.5;
+    }
+
+    /* ── Wait time ── */
+    .dep-wait {
+      flex-shrink: 0;
+      margin-left: 16px;
+      text-align: right;
+      min-width: 52px;
+    }
+
+    .wait-num {
+      font-size: 40px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .wait-num.is-due {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--due);
+      padding: 4px 8px;
+      background: rgba(62,238,160,0.1);
+      border-radius: 6px;
+    }
+
+    .wait-unit {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-top: 1px;
+    }
+
+    /* ── Section divider ── */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 12px 4px 6px;
+    }
+
+    /* ── Footer ── */
+    .footer {
+      padding-top: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .updated {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .btn-refresh {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      color: var(--text-mid);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+    }
+
+    .btn-refresh:active {
+      background: var(--amber-glow);
+      border-color: var(--amber-ring);
+      color: var(--amber);
+    }
+
+    /* ── State screens ── */
+    .state-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 12px;
+      padding: 40px 24px;
+    }
+
+    .state-glyph {
+      font-size: 52px;
+      line-height: 1;
+      margin-bottom: 4px;
+      opacity: 0.7;
+    }
+
+    .state-title {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .state-body {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.55;
+      max-width: 260px;
+    }
+
+    .btn-action {
+      margin-top: 8px;
+      padding: 13px 30px;
+      background: var(--amber-glow);
+      border: 1px solid var(--amber-ring);
+      border-radius: 100px;
+      color: var(--amber);
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s;
+    }
+
+    .btn-action:active { background: rgba(240,160,32,0.22); }
+
+    /* ── Loading skeletons ── */
+    .skel-stop-name {
+      width: 200px;
+      height: 38px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+    .skel-stop-meta {
+      width: 110px;
+      height: 14px;
+      border-radius: 4px;
+    }
+
+    .skel-row {
+      height: 76px;
+      border-radius: 14px;
+    }
+
+    .skel {
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.04) 25%,
+        rgba(255,255,255,0.08) 50%,
+        rgba(255,255,255,0.04) 75%
+      );
+      background-size: 300% 100%;
+      animation: shimmer 1.6s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { background-position: 100% 0; }
+      100% { background-position: -100% 0; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <header class="header">
+    <div class="brand">
+      <!-- Hexagon mark — nod to the Bee Network without being a knockoff -->
+      <svg class="hex-mark" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M15 1.5L27 8.25V21.75L15 28.5L3 21.75V8.25L15 1.5Z"
+              stroke="#F0A020" stroke-width="1.5" opacity="0.5"/>
+        <path d="M15 8L21 11.5V18.5L15 22L9 18.5V11.5L15 8Z"
+              fill="#F0A020" opacity="0.9"/>
+      </svg>
+      <span class="brand-label">Tram</span>
+    </div>
+    <div class="status-pill" id="status-pill">
+      <div class="dot"></div>
+      <span id="status-label">Loading</span>
+    </div>
+  </header>
+
+  <div id="content" style="flex:1;display:flex;flex-direction:column;"></div>
+</div>
+
+<script>
+// ── Stop coordinates (lat, lng) ──────────────────────────────────────────────
+const STOPS = {
+  // South Manchester — East Didsbury branch
+  'East Didsbury':           [53.4094, -2.2118],
+  'Didsbury Village':        [53.4150, -2.2245],
+  'West Didsbury':           [53.4160, -2.2398],
+  'Burton Road':             [53.4299, -2.2313],
+  'Withington':              [53.4237, -2.2218],
+  'Fallowfield':             [53.4397, -2.2157],
+  'Mauldeth Road':           [53.4436, -2.2121],
+  'Chorlton':                [53.4421, -2.2645],
+  "St Werburgh's Road":      [53.4513, -2.2704],
+  'Firswood':                [53.4574, -2.2779],
+  'Barlow Moor Road':        [53.4332, -2.2641],
+
+  // Altrincham line
+  'Altrincham':              [53.3872, -2.3497],
+  'Navigation Road':         [53.3938, -2.3380],
+  'Timperley':               [53.3986, -2.3233],
+  'Brooklands':              [53.4034, -2.3072],
+  'Sale':                    [53.4248, -2.3220],
+  'Dane Road':               [53.4290, -2.3122],
+  'Stretford':               [53.4469, -2.3078],
+  'Old Trafford':            [53.4553, -2.2913],
+  'Trafford Bar':            [53.4621, -2.2745],
+  'Cornbrook':               [53.4676, -2.2572],
+
+  // Eccles / MediaCity line
+  'Eccles':                  [53.4849, -2.3346],
+  'Ladywell':                [53.4810, -2.3361],
+  'Weaste':                  [53.4793, -2.3284],
+  'Langworthy':              [53.4763, -2.3151],
+  'Broadway':                [53.4752, -2.3038],
+  'MediaCityUK':             [53.4719, -2.2968],
+  'Harbour City':            [53.4733, -2.2974],
+  'Anchorage':               [53.4770, -2.2846],
+  'Exchange Quay':           [53.4750, -2.2777],
+  'Salford Quays':           [53.4740, -2.2740],
+  'Pomona':                  [53.4672, -2.2680],
+
+  // City centre
+  'Deansgate-Castlefield':   [53.4755, -2.2513],
+  "St Peter's Square":       [53.4784, -2.2437],
+  'Piccadilly Gardens':      [53.4808, -2.2344],
+  'Market Street':           [53.4815, -2.2349],
+  'Mosley Street':           [53.4796, -2.2383],
+  'Piccadilly':              [53.4773, -2.2310],
+  'Victoria':                [53.4858, -2.2396],
+  'Exchange Square':         [53.4837, -2.2428],
+  'Shudehill':               [53.4847, -2.2368],
+  'New Islington':           [53.4773, -2.2203],
+
+  // Ashton-under-Lyne line
+  'Holt Town':               [53.4779, -2.2082],
+  'Etihad Campus':           [53.4822, -2.2003],
+  'Velopark':                [53.4854, -2.1944],
+  'Clayton Hall':            [53.4868, -2.1820],
+  'Edge Lane':               [53.4873, -2.1756],
+  'Cemetery Road':           [53.4875, -2.1679],
+  'Droylsden':               [53.4879, -2.1553],
+  'Audenshaw':               [53.4887, -2.1450],
+  'Ashton Moss':             [53.4896, -2.1279],
+  'Ashton West':             [53.4901, -2.1177],
+  'Ashton-under-Lyne':       [53.4893, -2.1007],
+
+  // Bury line
+  'Bury':                    [53.5937, -2.2975],
+  'Radcliffe':               [53.5609, -2.3268],
+  'Whitefield':              [53.5497, -2.2992],
+  "Besses o' th' Barn":      [53.5419, -2.2943],
+  'Prestwich':               [53.5333, -2.2854],
+  'Heaton Park':             [53.5279, -2.2692],
+  'Bowker Vale':             [53.5189, -2.2545],
+  'Crumpsall':               [53.5134, -2.2394],
+  'Abraham Moss':            [53.5085, -2.2306],
+  'Collyhurst Street':       [53.4972, -2.2295],
+  'Queens Road':             [53.4921, -2.2344],
+  'Woodlands Road':          [53.4890, -2.2366],
+
+  // Rochdale / Oldham lines
+  'Rochdale Town Centre':    [53.6133, -2.1512],
+  'Rochdale Railway Station':[53.6107, -2.1564],
+  'Castleton':               [53.5955, -2.1316],
+  'Hopwood Hall':            [53.5825, -2.1090],
+  'Slattocks':               [53.5800, -2.0981],
+  'Newhey':                  [53.5748, -2.0745],
+  'Milnrow':                 [53.5762, -2.0660],
+  'Kingsway Business Park':  [53.5780, -2.0533],
+  'Shaw and Crompton':       [53.5774, -2.0988],
+  'Oldham King Street':      [53.5410, -2.1137],
+  'Oldham Central':          [53.5419, -2.1187],
+  'Oldham Mumps':            [53.5432, -2.1100],
+  'Derker':                  [53.5500, -2.1026],
+  'South Chadderton':        [53.5573, -2.1004],
+  'Freehold':                [53.5638, -2.1019],
+  'Westwood':                [53.5699, -2.0869],
+  'Failsworth':              [53.5178, -2.1582],
+  'Hollinwood':              [53.5253, -2.1449],
+  'Central Park':            [53.5089, -2.1756],
+  'Monsall':                 [53.4935, -2.2107],
+  'Rochdale Road':           [53.4906, -2.2195],
+
+  // Manchester Airport line
+  'Manchester Airport':      [53.3636, -2.2722],
+  'Shadowmoss':              [53.3799, -2.2680],
+  'Wythenshawe Park':        [53.3905, -2.2661],
+  'Baguley':                 [53.3964, -2.2749],
+  'Peel Hall':               [53.3971, -2.2813],
+  'Newall Green':            [53.4003, -2.2828],
+  'Wythenshawe Town Centre': [53.4039, -2.2672],
+  'Benchill':                [53.4091, -2.2793],
+
+  // Trafford Park line
+  'Trafford Centre':         [53.4660, -2.3483],
+  'Village':                 [53.4672, -2.3406],
+  'Parkway':                 [53.4672, -2.3350],
+  'EventCity':               [53.4702, -2.3481],
+  'Phoenix Park':            [53.5052, -2.2917],
+};
+
+// ── API ──────────────────────────────────────────────────────────────────────
+const API_URL   = 'https://europe-west2-tramsfunc.cloudfunctions.net/tramsfunc';
+const PROXY_URL = 'https://corsproxy.io/?' + encodeURIComponent(API_URL);
+
+async function fetchTrams() {
+  for (const url of [API_URL, PROXY_URL]) {
+    try {
+      const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return await res.json();
+    } catch (e) {
+      if (url === PROXY_URL) throw e;
+    }
+  }
+}
+
+// ── Geolocation helpers ───────────────────────────────────────────────────────
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) ** 2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function findNearest(userLat, userLng, apiData) {
+  // Build a set of station names actually present in the live data
+  const liveNames = new Set(apiData.map(e => e.StationLocation));
+
+  let best = null, bestDist = Infinity;
+  for (const [name, [lat, lng]] of Object.entries(STOPS)) {
+    // Case-insensitive match against live data
+    const liveName = [...liveNames].find(n => n.toLowerCase() === name.toLowerCase());
+    if (!liveName) continue;
+
+    const d = haversine(userLat, userLng, lat, lng);
+    if (d < bestDist) { bestDist = d; best = { name: liveName, dist: d }; }
+  }
+  return best;
+}
+
+// ── Departure extraction ──────────────────────────────────────────────────────
+function extractDepartures(apiData, stopName) {
+  const entries = apiData.filter(e => e.StationLocation === stopName);
+  const deps = [];
+
+  for (const entry of entries) {
+    for (let i = 0; i <= 3; i++) {
+      const dest    = (entry[`Dest${i}`]     || '').trim();
+      const waitRaw = (entry[`Wait${i}`]     || '').trim();
+      const status  = (entry[`Status${i}`]   || '').trim();
+      const car     = (entry[`Carriages${i}`]|| '').trim();
+
+      if (!dest) continue;
+
+      const waitNum = parseInt(waitRaw);
+      const isDue   = status === 'Due' || waitNum === 0 || waitRaw === '0';
+      const wait    = isNaN(waitNum) ? 0 : waitNum;
+
+      deps.push({ dest, wait, isDue, carriages: car, direction: entry.Direction });
+    }
+  }
+
+  // Deduplicate by dest+wait, then sort
+  const seen = new Set();
+  return deps
+    .filter(d => { const k = `${d.dest}|${d.wait}`; return seen.has(k) ? false : seen.add(k); })
+    .sort((a, b) => a.wait - b.wait);
+}
+
+// ── Formatting ────────────────────────────────────────────────────────────────
+function fmtDist(km) {
+  return km < 1
+    ? `${Math.round(km * 1000)} m away`
+    : `${km.toFixed(1)} km away`;
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+// ── Render functions ──────────────────────────────────────────────────────────
+function renderLoading() {
+  return `
+    <div class="stop-hero">
+      <div class="stop-eyebrow">Nearest stop</div>
+      <div class="skel skel-stop-name"></div>
+      <div class="skel skel-stop-meta" style="margin-top:8px;"></div>
+    </div>
+    <div class="departures">
+      ${[...Array(5)].map(() => `<div class="skel skel-row"></div>`).join('')}
+    </div>`;
+}
+
+function renderDeparture(d) {
+  const carCount = /double/i.test(d.carriages) ? 2 : 1;
+  const pips = `<div class="carriage-pip">${'<i></i>'.repeat(carCount)}</div>`;
+  const carLabel = carCount === 2 ? 'Double' : 'Single';
+
+  const waitEl = d.isDue
+    ? `<div class="wait-num is-due">DUE</div>`
+    : `<div class="wait-num">${d.wait}</div><div class="wait-unit">min</div>`;
+
+  return `
+    <div class="dep-row ${d.isDue ? 'due-now' : ''}">
+      <div class="dep-info">
+        <div class="dep-dest">${d.dest}</div>
+        <div class="dep-sub">${pips}<span>${carLabel}</span></div>
+      </div>
+      <div class="dep-wait">${waitEl}</div>
+    </div>`;
+}
+
+function renderDepartures(nearest, deps, updatedAt) {
+  const rows = deps.length
+    ? deps.slice(0, 8).map(renderDeparture).join('')
+    : `<div class="state-wrap" style="justify-content:flex-start;padding-top:40px;">
+         <div class="state-glyph">🚊</div>
+         <div class="state-title">No departures</div>
+         <div class="state-body">No live departures at ${nearest.name} right now.</div>
+       </div>`;
+
+  return `
+    <div class="stop-hero">
+      <div class="stop-eyebrow">Nearest stop</div>
+      <div class="stop-name">${nearest.name}</div>
+      <div class="stop-meta">${fmtDist(nearest.dist)}</div>
+    </div>
+    <div class="departures">${rows}</div>
+    <div class="footer">
+      <span class="updated">Updated ${fmtTime(updatedAt)}</span>
+      <button class="btn-refresh" onclick="doRefresh()">
+        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+          <path d="M10.5 6A4.5 4.5 0 1 1 6 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M6 1.5L8 3.5M6 1.5L8 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Refresh
+      </button>
+    </div>`;
+}
+
+function renderError(msg) {
+  return `
+    <div class="state-wrap">
+      <div class="state-glyph">⚡</div>
+      <div class="state-title">Can't connect</div>
+      <div class="state-body">${msg}</div>
+      <button class="btn-action" onclick="doInit()">Try again</button>
+    </div>`;
+}
+
+function renderNoLocation(denied) {
+  return `
+    <div class="state-wrap">
+      <div class="state-glyph">📍</div>
+      <div class="state-title">Location needed</div>
+      <div class="state-body">${
+        denied
+          ? 'Location permission was denied. Enable it in your browser settings to find your nearest stop.'
+          : 'Allow location access so the app can find your nearest tram stop.'
+      }</div>
+      ${denied ? '' : `<button class="btn-action" onclick="doInit()">Allow location</button>`}
+    </div>`;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let userLat = null, userLng = null;
+let refreshTimer = null;
+
+const content     = document.getElementById('content');
+const statusPill  = document.getElementById('status-pill');
+const statusLabel = document.getElementById('status-label');
+
+function setStatus(state) {
+  statusPill.className = 'status-pill ' + state;
+  statusLabel.textContent = { live: 'Live', loading: 'Loading', error: 'Error' }[state] || state;
+}
+
+async function doRefresh() {
+  if (!userLat) return;
+  try {
+    const data = await fetchTrams();
+    const nearest = findNearest(userLat, userLng, data);
+    if (!nearest) throw new Error('No stops found nearby.');
+    const deps = extractDepartures(data, nearest.name);
+    content.innerHTML = renderDepartures(nearest, deps, new Date());
+    setStatus('live');
+  } catch (e) {
+    setStatus('error');
+    // Keep existing content if available, just update status
+  }
+}
+
+async function doInit() {
+  content.innerHTML = renderLoading();
+  setStatus('loading');
+
+  let pos;
+  try {
+    pos = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 60000,
+      });
+    });
+  } catch (e) {
+    const denied = e.code === 1;
+    content.innerHTML = renderNoLocation(denied);
+    setStatus('error');
+    return;
+  }
+
+  userLat = pos.coords.latitude;
+  userLng = pos.coords.longitude;
+
+  try {
+    const data = await fetchTrams();
+    const nearest = findNearest(userLat, userLng, data);
+
+    if (!nearest) {
+      content.innerHTML = renderError("Couldn't match your location to a tram stop. Are you near the Metrolink network?");
+      setStatus('error');
+      return;
+    }
+
+    const deps = extractDepartures(data, nearest.name);
+    content.innerHTML = renderDepartures(nearest, deps, new Date());
+    setStatus('live');
+
+    clearInterval(refreshTimer);
+    refreshTimer = setInterval(doRefresh, 30000);
+  } catch (e) {
+    content.innerHTML = renderError('Could not load tram times. Check your connection and try again.');
+    setStatus('error');
+  }
+}
+
+// Tap anywhere to refresh (once running)
+document.getElementById('app').addEventListener('click', e => {
+  if (userLat && !e.target.closest('button')) doRefresh();
+});
+
+doInit();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
