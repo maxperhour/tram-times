@@ -243,6 +243,21 @@
       letter-spacing: 0.04em; text-align: right;
     }
 
+    /* ── Direction toggle ── */
+    .dir-toggle {
+      display: flex; gap: 5px; margin-top: 8px; padding-left: 30px; flex-wrap: wrap;
+    }
+    .dir-btn {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase;
+      padding: 3px 8px 2px; border-radius: 2px;
+      border: 1px solid var(--ink-faint);
+      color: var(--ink-soft); background: transparent;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s, color 0.15s, border-color 0.15s;
+    }
+    .dir-btn.active { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
     /* ── Ticket footer ── */
     .ticket-footer {
       display: flex; justify-content: space-between; align-items: center;
@@ -614,15 +629,25 @@ function renderLoading() {
     </div>`;
 }
 
-function renderTicket(nearest, deps, walkMin, catchable, leaveIn, updatedDate, isPinned) {
+function renderTicket(nearest, ledDeps, allDeps, walkMin, catchable, leaveIn, updatedDate, isPinned) {
   const eyebrow = isPinned ? 'PINNED STOP' : 'NEAREST STOP';
   const distLabel = fmtDistLabel(nearest.dist);
   const walkLabel = walkMin <= 1 ? 'AT STOP' : `~${walkMin} MIN WALK`;
 
+  // Direction toggle — only shown when both directions have departures
+  const uniqueDirs = [...new Set(allDeps.map(d => d.direction).filter(Boolean))];
+  const showDirToggle = uniqueDirs.length >= 2;
+  const dirSample = dir => [...new Set(allDeps.filter(d => d.direction === dir).map(d => d.dest))].slice(0, 2).join(', ');
+  const dirToggleHTML = showDirToggle ? `
+    <div class="dir-toggle">
+      <button class="dir-btn ${selectedDirection === 'Incoming' ? 'active' : ''}" onclick="setDirection('Incoming')">${dirSample('Incoming')}</button>
+      <button class="dir-btn ${selectedDirection === 'Outgoing' ? 'active' : ''}" onclick="setDirection('Outgoing')">${dirSample('Outgoing')}</button>
+    </div>` : '';
+
   // Classify LED rows
-  const firstCatchIdx = deps.findIndex(d => !d.isDue && d.wait >= walkMin);
-  const ledDeps = deps.slice(0, 4);
-  const ledRows = ledDeps.map((d, i) => {
+  const firstCatchIdx = ledDeps.findIndex(d => !d.isDue && d.wait >= walkMin);
+  const ledRows4 = ledDeps.slice(0, 4);
+  const ledRows = ledRows4.map((d, i) => {
     let state;
     if (d.isDue || d.wait < walkMin) state = 'miss';
     else if (i === firstCatchIdx) state = 'catch';
@@ -685,6 +710,7 @@ function renderTicket(nearest, deps, walkMin, catchable, leaveIn, updatedDate, i
           <div class="stop-name btn-pin" data-stop="${nearest.name}">${formatStopName(nearest.name)}</div>
         </div>
         <div class="stop-dist">${distLabel} · ${walkLabel}</div>
+        ${dirToggleHTML}
       </div>
       <div class="live-stamp" id="live-stamp">LIVE</div>
     </div>
@@ -807,6 +833,9 @@ function startTramAnimation(target) {
 let userLat = null, userLng = null;
 let refreshTimer = null;
 let refreshing = false;
+let selectedDirection = null;
+let lastStop = null;
+let lastDeps = [];
 
 const content = document.getElementById('content');
 
@@ -838,11 +867,23 @@ function resolveStop(data) {
   return nearest ? { ...nearest, isPinned: false } : null;
 }
 
+function setDirection(dir) {
+  selectedDirection = (selectedDirection === dir) ? null : dir;
+  if (lastStop?.name) localStorage.setItem('dir_' + lastStop.name, selectedDirection || '');
+  if (lastStop && lastDeps.length) applyTicket(lastStop, lastDeps);
+}
+
 function applyTicket(stop, deps) {
+  if (stop.name !== lastStop?.name) {
+    selectedDirection = localStorage.getItem('dir_' + stop.name) || null;
+  }
+  lastStop = stop;
+  lastDeps = deps;
+  const filtered = selectedDirection ? deps.filter(d => d.direction === selectedDirection) : deps;
   const walkMin = computeWalkMin(stop.dist);
-  const catchable = deps.find(d => !d.isDue && d.wait >= walkMin);
+  const catchable = filtered.find(d => !d.isDue && d.wait >= walkMin);
   const leaveIn = catchable ? Math.max(0, catchable.wait - walkMin) : null;
-  content.innerHTML = renderTicket(stop, deps, walkMin, catchable, leaveIn, new Date(), stop.isPinned);
+  content.innerHTML = renderTicket(stop, filtered, deps, walkMin, catchable, leaveIn, new Date(), stop.isPinned);
   if (catchable && leaveIn !== null && walkMin > 1) {
     const target = Math.max(0.05, Math.min(0.85, 1 - leaveIn / walkMin));
     startTramAnimation(target);
