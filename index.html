@@ -4,622 +4,370 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Tram">
-  <meta name="theme-color" content="#06060F">
+  <meta name="theme-color" content="#f1e6c8">
   <title>Tram Times</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..800;1,9..144,400..800&family=IBM+Plex+Mono:wght@400&family=VT323&display=swap" rel="stylesheet">
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:          #06060F;
-      --surface:     rgba(255,255,255,0.038);
-      --border:      rgba(255,255,255,0.08);
-      --amber:       #F0A020;
-      --amber-glow:  rgba(240,160,32,0.12);
-      --amber-ring:  rgba(240,160,32,0.28);
-      --text:        #EAEAF8;
-      --text-mid:    rgba(234,234,248,0.55);
-      --text-dim:    rgba(234,234,248,0.30);
-      --due:         #3EEEA0;
-      --due-glow:    rgba(62,238,160,0.12);
+      --paper:       #f1e6c8;
+      --paper-deep:  #e6d6ad;
+      --paper-shade: #dec8a0;
+      --ink:         #2e1d12;
+      --ink-soft:    #5a3f29;
+      --ink-faint:   rgba(46,29,18,0.35);
+      --rule:        rgba(46,29,18,0.25);
+      --red:         #9c3322;
+      --yellow:      #e3a83a;
+      --yellow-deep: #b8821f;
+      --yellow-soft: #f0c563;
+      --led-bg:      #10080a;
+      --led-amber:   #f5a623;
+      --led-hot:     #ffd86b;
+      --led-red:     #ff7a3d;
+      --led-dim:     rgba(245,158,11,0.42);
+      --led-rule:    rgba(245,158,11,0.18);
+      --led-dot:     rgba(245,158,11,0.07);
       --safe-top:    env(safe-area-inset-top, 0px);
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    html, body {
-      min-height: 100dvh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      overflow-x: hidden;
-    }
+    html, body { min-height: 100dvh; background: var(--paper); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
 
-    /* Subtle dot-grid texture */
-    body::before {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background-image: radial-gradient(rgba(240,160,32,0.09) 1px, transparent 1px);
-      background-size: 28px 28px;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Ambient glow at top */
-    body::after {
-      content: '';
-      position: fixed;
-      top: -120px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 360px;
-      height: 280px;
-      background: radial-gradient(ellipse, rgba(240,160,32,0.07) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 0;
+    body {
+      background-image:
+        radial-gradient(ellipse at 30% 0%, rgba(255,255,255,0.5), transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(46,29,18,0.08), transparent 70%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='1.4' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0 0.07  0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
     }
 
     #app {
-      position: relative;
-      z-index: 1;
       max-width: 430px;
       margin: 0 auto;
       min-height: 100dvh;
-      padding: calc(var(--safe-top) + 20px) 20px calc(var(--safe-bottom) + 32px);
+      padding: calc(var(--safe-top) + 20px) 18px calc(var(--safe-bottom) + 32px);
       display: flex;
       flex-direction: column;
+      font-family: 'Fraunces', Georgia, serif;
+      color: var(--ink);
     }
 
-    /* ── Header ── */
-    .header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 36px;
-      padding-top: 4px;
+    #content { flex: 1; display: flex; flex-direction: column; }
+
+    /* ── Masthead ── */
+    .masthead { display: flex; justify-content: space-between; align-items: baseline; }
+    .masthead-brand {
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 800;
+      font-size: 13px; letter-spacing: 0.25em; color: var(--ink);
     }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .masthead-serial {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.22em; color: var(--ink-soft);
     }
+    .masthead-rule { border-top: 2px solid var(--ink); margin-top: 4px; margin-bottom: 6px; }
 
-    .hex-mark {
-      width: 30px;
-      height: 30px;
-      flex-shrink: 0;
-    }
-
-    .brand-label {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--amber);
-    }
-
-    .status-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 5px 12px;
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      background: var(--surface);
-    }
-
-    .status-pill.live { color: var(--due); border-color: rgba(62,238,160,0.22); }
-    .status-pill.live .dot { background: var(--due); animation: pulse 2.4s ease-in-out infinite; }
-
-    .dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: var(--text-dim);
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(62,238,160,0.4); }
-      50%       { opacity: 0.6; box-shadow: 0 0 0 4px rgba(62,238,160,0); }
-    }
-
-    /* ── Stop hero ── */
-    .stop-hero {
-      margin-bottom: 24px;
-    }
-
+    /* ── Stop block ── */
+    .stop-block { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .stop-left { flex: 1; min-width: 0; }
     .stop-eyebrow {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-bottom: 6px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.3em; color: var(--ink-soft);
     }
-
-    .stop-name-row {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
+    .stop-name-row { display: flex; align-items: center; gap: 10px; margin-top: 4px; }
     .stop-name {
-      font-size: 34px;
-      font-weight: 800;
-      letter-spacing: -0.025em;
-      line-height: 1.05;
-      color: var(--text);
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 700;
+      font-size: 44px; line-height: 0.95; color: var(--ink);
+      letter-spacing: -0.01em; cursor: pointer;
+    }
+    .stop-name em { font-style: italic; color: var(--yellow-deep); }
+    .stop-dist {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--ink-soft); letter-spacing: 0.18em;
+      margin-top: 6px; padding-left: 30px;
     }
 
-    .btn-pin {
-      flex-shrink: 0;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      background: none;
-      border: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-dim);
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: all 0.18s ease;
-      margin-bottom: -2px;
+    /* ── LIVE stamp ── */
+    .live-stamp {
+      transform: rotate(8deg); flex-shrink: 0;
+      border: 2px solid var(--red); color: var(--red);
+      padding: 3px 8px 2px; border-radius: 3px;
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 800;
+      font-size: 13px; letter-spacing: 0.2em;
+      opacity: 0.78; transition: opacity 0.3s ease;
+    }
+    .live-stamp.hidden { opacity: 0; pointer-events: none; }
+
+    /* ── Perforations ── */
+    .perf-top, .perf-bottom { height: 8px; background-color: var(--paper-deep); }
+    .perf-top {
+      -webkit-mask-image: radial-gradient(circle 4px at 4px 8px, transparent 98%, #000 100%);
+      mask-image: radial-gradient(circle 4px at 4px 8px, transparent 98%, #000 100%);
+      -webkit-mask-size: 8px 8px; mask-size: 8px 8px;
+      -webkit-mask-repeat: repeat-x; mask-repeat: repeat-x;
+    }
+    .perf-bottom {
+      -webkit-mask-image: radial-gradient(circle 4px at 4px 0px, transparent 98%, #000 100%);
+      mask-image: radial-gradient(circle 4px at 4px 0px, transparent 98%, #000 100%);
+      -webkit-mask-size: 8px 8px; mask-size: 8px 8px;
+      -webkit-mask-repeat: repeat-x; mask-repeat: repeat-x;
     }
 
-    .btn-pin.pinned {
-      background: var(--amber-glow);
-      border-color: var(--amber-ring);
-      color: var(--amber);
+    /* ── Leave-in stub ── */
+    .stub-wrap { margin-top: 16px; }
+    .stub-body {
+      background: var(--paper-deep); padding: 12px 14px;
+      border-left: 1px dashed var(--rule); border-right: 1px dashed var(--rule);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .hex-seal {
+      flex-shrink: 0; width: 32px; height: 36px;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      background: var(--yellow);
+      display: flex; align-items: center; justify-content: center;
+      transform: rotate(-6deg);
+    }
+    .stub-text { flex: 1; min-width: 0; }
+    .stub-eyebrow {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px; letter-spacing: 0.3em; color: var(--ink-soft);
+    }
+    .stub-main { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; }
+    .leave-num {
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 800;
+      font-size: 40px; line-height: 0.9; color: var(--ink);
+    }
+    .leave-unit {
+      font-family: 'Fraunces', serif; font-style: italic;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 500;
+      font-size: 20px; color: var(--ink);
+    }
+    .leave-caption {
+      font-family: 'Fraunces', serif; font-style: italic;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 500;
+      font-size: 13px; color: var(--ink-soft); margin-left: 4px;
+    }
+    .leave-caption strong {
+      font-style: normal;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 700;
+      color: var(--ink);
     }
 
-    .stop-meta {
-      margin-top: 5px;
-      font-size: 13px;
-      color: var(--text-dim);
-    }
-
-    /* ── Departure list ── */
-    .departures {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
-      flex: 1;
-    }
-
-    .dep-row {
-      position: relative;
-      display: flex;
-      align-items: center;
-      padding: 15px 18px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      overflow: hidden;
-      transition: background 0.2s ease, border-color 0.2s ease;
-    }
-
-    /* Left accent bar */
-    .dep-row::before {
-      content: '';
-      position: absolute;
-      left: 0; top: 12%; bottom: 12%;
-      width: 3px;
-      border-radius: 0 2px 2px 0;
-      background: var(--amber);
-      opacity: 0.55;
-      transition: opacity 0.2s ease, background 0.2s ease;
-    }
-
-    .dep-row.due-now {
-      background: var(--due-glow);
-      border-color: rgba(62,238,160,0.18);
-    }
-
-    .dep-row.due-now::before {
-      background: var(--due);
-      opacity: 1;
-    }
-
-    .dep-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .dep-dest {
-      font-size: 17px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--text);
-    }
-
-    .dep-sub {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-top: 3px;
-      font-size: 12px;
-      color: var(--text-dim);
-    }
-
-    .carriage-pip {
-      display: inline-flex;
-      gap: 2px;
-    }
-
-    .carriage-pip i {
-      display: block;
-      width: 6px;
-      height: 6px;
-      border-radius: 1.5px;
-      background: currentColor;
+    /* ── Tram rail ── */
+    .tram-track { position: relative; margin-top: 14px; margin-bottom: 8px; height: 36px; }
+    .tram-rail { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: var(--ink); opacity: 0.85; border-radius: 1px; }
+    .tram-sleepers {
+      position: absolute; left: 0; right: 0; bottom: -3px; height: 3px;
+      background-image: repeating-linear-gradient(90deg, var(--ink) 0, var(--ink) 2px, transparent 2px, transparent 14px);
       opacity: 0.5;
     }
-
-    /* ── Wait time ── */
-    .dep-wait {
-      flex-shrink: 0;
-      margin-left: 16px;
-      text-align: right;
-      min-width: 52px;
+    .tram-clip {
+      position: absolute; left: 0; right: 0; top: 0; bottom: 3px; overflow: hidden;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
+      mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
+    }
+    #tram-vehicle {
+      position: absolute; bottom: 5px;
+      display: flex; align-items: flex-end;
+      filter: drop-shadow(0 2px 0 rgba(46,29,18,0.18));
     }
 
-    .wait-num {
-      font-size: 40px;
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      font-variant-numeric: tabular-nums;
-      line-height: 1;
-      color: var(--text);
+    /* ── LED board ── */
+    .led-bezel {
+      border-radius: 10px; padding: 3px;
+      background: linear-gradient(180deg, #3a2a1f 0%, #1f1610 100%);
+      box-shadow: 0 1px 0 var(--yellow-soft), inset 0 0 0 1px rgba(0,0,0,0.4);
+    }
+    .led-screen {
+      background: var(--led-bg); border-radius: 8px; padding: 8px 14px;
+      position: relative; overflow: hidden;
+      background-image: radial-gradient(circle, var(--led-dot) 0.8px, transparent 1.3px);
+      background-size: 4px 4px;
+    }
+    .led-scanlines {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.18) 0, rgba(0,0,0,0.18) 1px, transparent 1px, transparent 3px);
+      mix-blend-mode: multiply;
+    }
+    .led-vignette {
+      position: absolute; inset: 0; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.55));
+    }
+    .led-header {
+      position: relative; z-index: 2;
+      display: flex; justify-content: space-between; align-items: center;
+      padding-bottom: 8px; margin-bottom: 4px;
+      border-bottom: 1px dashed var(--led-rule);
+    }
+    .led-title {
+      font-family: 'VT323', monospace; font-size: 19px;
+      color: var(--led-amber); letter-spacing: 0.18em;
+      text-shadow: 0 0 6px rgba(245,166,35,0.53);
+    }
+    .led-live-group { display: flex; align-items: center; gap: 6px; }
+    .led-blink-dot {
+      width: 5px; height: 5px; border-radius: 3px;
+      background: var(--led-amber); box-shadow: 0 0 6px var(--led-amber);
+      animation: led-blink 2s ease-in-out infinite;
+    }
+    .led-live-text {
+      font-family: 'VT323', monospace; font-size: 17px;
+      color: var(--led-amber); letter-spacing: 0.25em;
+      text-shadow: 0 0 6px rgba(245,166,35,0.53);
+    }
+    .led-rows { position: relative; z-index: 2; }
+    .led-row {
+      display: grid; grid-template-columns: 14px 1fr auto 52px;
+      align-items: center; gap: 10px; padding: 7px 0;
+    }
+    .led-row + .led-row { border-top: 1px dotted var(--led-rule); }
+    .led-glyph {
+      font-family: 'VT323', monospace; font-size: 18px;
+      color: var(--led-dim); line-height: 1; text-align: center;
+    }
+    .led-dest {
+      font-family: 'VT323', monospace; font-size: 26px; line-height: 1;
+      letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: clip;
+    }
+    .led-mins {
+      font-family: 'VT323', monospace; font-size: 32px; line-height: 1;
+      letter-spacing: 0.04em; text-align: right;
     }
 
-    .wait-num.is-due {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--due);
-      padding: 4px 8px;
-      background: rgba(62,238,160,0.1);
-      border-radius: 6px;
+    /* ── Ticket footer ── */
+    .ticket-footer {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--ink);
     }
-
-    .wait-unit {
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      margin-top: 1px;
+    .issued-time {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px; color: var(--ink-soft); letter-spacing: 0.25em;
     }
-
-    /* ── Section divider ── */
-    .section-label {
-      font-size: 10px;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      padding: 12px 4px 6px;
-    }
-
-    /* ── Footer ── */
-    .footer {
-      padding-top: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .updated {
-      font-size: 11px;
-      color: var(--text-dim);
-    }
-
     .btn-refresh {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 16px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 100px;
-      color: var(--text-mid);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      display: flex; align-items: center; gap: 5px;
+      padding: 5px 12px;
+      border: 1.5px solid var(--ink); border-radius: 30px;
+      background: var(--paper-deep);
+      font-family: 'Fraunces', serif; font-style: italic;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 600;
+      font-size: 13px; color: var(--ink);
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: background 0.15s ease;
     }
-
-    .btn-refresh:active {
-      background: var(--amber-glow);
-      border-color: var(--amber-ring);
-      color: var(--amber);
-    }
+    .btn-refresh:active, .btn-refresh.spinning { background: var(--paper-shade); }
 
     /* ── State screens ── */
     .state-wrap {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      gap: 12px;
-      padding: 40px 24px;
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center; gap: 12px; padding: 40px 0;
     }
-
-    .state-glyph {
-      font-size: 52px;
-      line-height: 1;
-      margin-bottom: 4px;
-      opacity: 0.7;
-    }
-
+    .state-glyph { font-size: 48px; line-height: 1; margin-bottom: 4px; }
     .state-title {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: -0.02em;
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 700;
+      font-size: 22px; color: var(--ink);
     }
-
     .state-body {
-      font-size: 14px;
-      color: var(--text-dim);
-      line-height: 1.55;
-      max-width: 260px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px; color: var(--ink-soft); line-height: 1.6; max-width: 260px;
     }
-
     .btn-action {
-      margin-top: 8px;
-      padding: 13px 30px;
-      background: var(--amber-glow);
-      border: 1px solid var(--amber-ring);
-      border-radius: 100px;
-      color: var(--amber);
-      font-size: 14px;
-      font-weight: 700;
-      cursor: pointer;
+      margin-top: 8px; padding: 12px 28px;
+      background: var(--yellow); border: 1.5px solid var(--ink); border-radius: 30px;
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 700;
+      font-size: 14px; color: var(--ink); cursor: pointer;
       -webkit-tap-highlight-color: transparent;
-      transition: background 0.15s;
     }
 
-    .btn-action:active { background: rgba(240,160,32,0.22); }
-
-    /* ── Loading skeletons ── */
-    .skel-stop-name {
-      width: 200px;
-      height: 38px;
-      border-radius: 8px;
-      margin-bottom: 8px;
-    }
-
-    .skel-stop-meta {
-      width: 110px;
-      height: 14px;
-      border-radius: 4px;
-    }
-
-    .skel-row {
-      height: 76px;
-      border-radius: 14px;
-    }
-
+    /* ── Loading skeleton ── */
     .skel {
       background: linear-gradient(90deg,
-        rgba(255,255,255,0.04) 25%,
-        rgba(255,255,255,0.08) 50%,
-        rgba(255,255,255,0.04) 75%
+        rgba(46,29,18,0.06) 25%,
+        rgba(46,29,18,0.12) 50%,
+        rgba(46,29,18,0.06) 75%
       );
       background-size: 300% 100%;
+      border-radius: 4px;
       animation: shimmer 1.6s ease-in-out infinite;
     }
 
-    @keyframes shimmer {
-      0%   { background-position: 100% 0; }
-      100% { background-position: -100% 0; }
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* ── Walk card ── */
-    .walk-card {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      padding: 13px 16px;
-      background: rgba(240,160,32,0.07);
-      border: 1px solid rgba(240,160,32,0.18);
-      border-radius: 14px;
-      margin-bottom: 10px;
-    }
-
-    .walk-card-icon {
-      color: var(--amber);
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    .walk-card-main {
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--text);
-      line-height: 1.35;
-    }
-
-    .walk-card-main strong { color: var(--amber); font-weight: 700; }
-
-    .walk-card-sub {
-      font-size: 12px;
-      color: var(--text-dim);
-      margin-top: 3px;
-    }
-
-    .walk-card.at-stop {
-      background: var(--due-glow);
-      border-color: rgba(62,238,160,0.2);
-    }
-
-    .walk-card.at-stop .walk-card-icon { color: var(--due); }
+    @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
+    @keyframes led-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Stop picker ── */
     .picker-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      z-index: 10;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.25s ease;
+      position: fixed; inset: 0; background: rgba(46,29,18,0.4);
+      z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.25s ease;
     }
-
-    .picker-overlay.open {
-      opacity: 1;
-      pointer-events: all;
-    }
-
+    .picker-overlay.open { opacity: 1; pointer-events: all; }
     .picker-sheet {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      max-width: 430px;
-      margin: 0 auto;
-      background: #0D0D1A;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-bottom: none;
-      border-radius: 20px 20px 0 0;
-      z-index: 11;
-      max-height: 72vh;
-      display: flex;
-      flex-direction: column;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      max-width: 430px; margin: 0 auto;
+      background: var(--paper);
+      border: 1.5px solid var(--ink); border-bottom: none;
+      border-radius: 20px 20px 0 0; z-index: 11; max-height: 72vh;
+      display: flex; flex-direction: column;
       transform: translateY(100%);
       transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
-
-    .picker-sheet.open {
-      transform: translateY(0);
-    }
-
+    .picker-sheet.open { transform: translateY(0); }
     .picker-handle {
-      width: 36px;
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(255,255,255,0.15);
-      margin: 12px auto 0;
-      flex-shrink: 0;
+      width: 36px; height: 4px; border-radius: 2px;
+      background: var(--ink-faint); margin: 12px auto 0; flex-shrink: 0;
     }
-
     .picker-header {
-      padding: 16px 20px 12px;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      color: var(--text-dim);
-      flex-shrink: 0;
-      border-bottom: 1px solid var(--border);
+      padding: 14px 20px 10px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--ink-soft); flex-shrink: 0; border-bottom: 1px solid var(--rule);
     }
-
-    .picker-list {
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      flex: 1;
-    }
-
+    .picker-list { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
     .picker-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 20px;
-      border-bottom: 1px solid rgba(255,255,255,0.04);
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-      transition: background 0.12s ease;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 13px 20px; border-bottom: 1px solid rgba(46,29,18,0.08);
+      cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background 0.1s;
     }
-
-    .picker-row:active { background: rgba(255,255,255,0.05); }
-
-    .picker-row.selected { background: var(--amber-glow); }
-
+    .picker-row:active { background: var(--paper-deep); }
+    .picker-row.selected { background: rgba(227,168,58,0.2); }
     .picker-stop-name {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text);
+      font-family: 'Fraunces', serif;
+      font-variation-settings: 'opsz' 144, 'SOFT' 100, 'wght' 600;
+      font-size: 16px; color: var(--ink);
     }
-
-    .picker-row.selected .picker-stop-name { color: var(--amber); }
-
+    .picker-row.selected .picker-stop-name { color: var(--yellow-deep); }
     .picker-dist {
-      font-size: 12px;
-      color: var(--text-dim);
-      flex-shrink: 0;
-      margin-left: 12px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px; color: var(--ink-soft); flex-shrink: 0; margin-left: 12px;
     }
   </style>
 </head>
 <body>
 <div id="app">
-  <header class="header">
-    <div class="brand">
-      <svg class="hex-mark" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M15 1.5L27 8.25V21.75L15 28.5L3 21.75V8.25L15 1.5Z"
-              stroke="#F0A020" stroke-width="1.5" opacity="0.5"/>
-        <path d="M15 8L21 11.5V18.5L15 22L9 18.5V11.5L15 8Z"
-              fill="#F0A020" opacity="0.9"/>
-      </svg>
-      <span class="brand-label">Tram</span>
-    </div>
-    <div class="status-pill" id="status-pill">
-      <div class="dot"></div>
-      <span id="status-label">Loading</span>
-    </div>
-  </header>
-
-  <div id="content" style="flex:1;display:flex;flex-direction:column;"></div>
-
-  <!-- Stop picker bottom sheet -->
+  <div id="content"></div>
   <div class="picker-overlay" id="picker-overlay"></div>
   <div class="picker-sheet" id="picker-sheet">
     <div class="picker-handle"></div>
     <div class="picker-header">Choose a stop</div>
     <div class="picker-list" id="picker-list"></div>
   </div>
-
-  <!-- Footer lives outside #content so it never gets wiped on re-render -->
-  <div class="footer" id="footer" style="display:none;">
-    <span class="updated" id="updated-time"></span>
-    <button class="btn-refresh" id="btn-refresh">
-      <svg id="refresh-icon" width="12" height="12" viewBox="0 0 12 12" fill="none">
-        <path d="M10.5 6A4.5 4.5 0 1 1 6 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M6 1.5L8 3.5M6 1.5L8 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Refresh
-    </button>
-  </div>
 </div>
 
 <script>
-// ── Stop coordinates (lat, lng) ──────────────────────────────────────────────
+// ── Stop coordinates ──────────────────────────────────────────────────────────
 const STOPS = {
-  // South Manchester — East Didsbury branch
   'East Didsbury':           [53.4094, -2.2118],
   'Didsbury Village':        [53.4150, -2.2245],
   'West Didsbury':           [53.4160, -2.2398],
@@ -631,8 +379,6 @@ const STOPS = {
   "St Werburgh's Road":      [53.4513, -2.2704],
   'Firswood':                [53.4574, -2.2779],
   'Barlow Moor Road':        [53.4332, -2.2641],
-
-  // Altrincham line
   'Altrincham':              [53.3872, -2.3497],
   'Navigation Road':         [53.3938, -2.3380],
   'Timperley':               [53.3986, -2.3233],
@@ -643,8 +389,6 @@ const STOPS = {
   'Old Trafford':            [53.4553, -2.2913],
   'Trafford Bar':            [53.4621, -2.2745],
   'Cornbrook':               [53.4676, -2.2572],
-
-  // Eccles / MediaCity line
   'Eccles':                  [53.4849, -2.3346],
   'Ladywell':                [53.4810, -2.3361],
   'Weaste':                  [53.4793, -2.3284],
@@ -656,8 +400,6 @@ const STOPS = {
   'Exchange Quay':           [53.4750, -2.2777],
   'Salford Quays':           [53.4740, -2.2740],
   'Pomona':                  [53.4672, -2.2680],
-
-  // City centre
   'Deansgate-Castlefield':   [53.4755, -2.2513],
   "St Peter's Square":       [53.4784, -2.2437],
   'Piccadilly Gardens':      [53.4808, -2.2344],
@@ -668,8 +410,6 @@ const STOPS = {
   'Exchange Square':         [53.4837, -2.2428],
   'Shudehill':               [53.4847, -2.2368],
   'New Islington':           [53.4773, -2.2203],
-
-  // Ashton-under-Lyne line
   'Holt Town':               [53.4779, -2.2082],
   'Etihad Campus':           [53.4822, -2.2003],
   'Velopark':                [53.4854, -2.1944],
@@ -681,8 +421,6 @@ const STOPS = {
   'Ashton Moss':             [53.4896, -2.1279],
   'Ashton West':             [53.4901, -2.1177],
   'Ashton-under-Lyne':       [53.4893, -2.1007],
-
-  // Bury line
   'Bury':                    [53.5937, -2.2975],
   'Radcliffe':               [53.5609, -2.3268],
   'Whitefield':              [53.5497, -2.2992],
@@ -695,8 +433,6 @@ const STOPS = {
   'Collyhurst Street':       [53.4972, -2.2295],
   'Queens Road':             [53.4921, -2.2344],
   'Woodlands Road':          [53.4890, -2.2366],
-
-  // Rochdale / Oldham lines
   'Rochdale Town Centre':    [53.6133, -2.1512],
   'Rochdale Railway Station':[53.6107, -2.1564],
   'Castleton':               [53.5955, -2.1316],
@@ -718,8 +454,6 @@ const STOPS = {
   'Central Park':            [53.5089, -2.1756],
   'Monsall':                 [53.4935, -2.2107],
   'Rochdale Road':           [53.4906, -2.2195],
-
-  // Manchester Airport line
   'Manchester Airport':      [53.3636, -2.2722],
   'Shadowmoss':              [53.3799, -2.2680],
   'Wythenshawe Park':        [53.3905, -2.2661],
@@ -728,8 +462,6 @@ const STOPS = {
   'Newall Green':            [53.4003, -2.2828],
   'Wythenshawe Town Centre': [53.4039, -2.2672],
   'Benchill':                [53.4091, -2.2793],
-
-  // Trafford Park line
   'Trafford Centre':         [53.4660, -2.3483],
   'Village':                 [53.4672, -2.3406],
   'Parkway':                 [53.4672, -2.3350],
@@ -737,20 +469,15 @@ const STOPS = {
   'Phoenix Park':            [53.5052, -2.2917],
 };
 
-// ── API ──────────────────────────────────────────────────────────────────────
+// ── API ───────────────────────────────────────────────────────────────────────
 const API_BASE = 'https://europe-west2-tramsfunc.cloudfunctions.net/tramsfunc';
 
 async function fetchTrams() {
-  // Timestamp busts any CDN or proxy cache on every call
   const url   = `${API_BASE}?t=${Date.now()}`;
   const proxy = `https://corsproxy.io/?${encodeURIComponent(url)}`;
-
   for (const endpoint of [url, proxy]) {
     try {
-      const res = await fetch(endpoint, {
-        signal: AbortSignal.timeout(10000),
-        cache: 'no-store',
-      });
+      const res = await fetch(endpoint, { signal: AbortSignal.timeout(10000), cache: 'no-store' });
       if (!res.ok) throw new Error('HTTP ' + res.status);
       return await res.json();
     } catch (e) {
@@ -759,200 +486,250 @@ async function fetchTrams() {
   }
 }
 
-// ── Geolocation helpers ───────────────────────────────────────────────────────
+// ── Geo helpers ───────────────────────────────────────────────────────────────
 function haversine(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = (lat2 - lat1) * Math.PI / 180;
-  const dLng = (lng2 - lng1) * Math.PI / 180;
-  const a = Math.sin(dLat / 2) ** 2
-    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
-  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const R = 6371, dLat = (lat2-lat1)*Math.PI/180, dLng = (lng2-lng1)*Math.PI/180;
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)**2;
+  return 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 function findNearest(userLat, userLng, apiData) {
-  // Build a set of station names actually present in the live data
   const liveNames = new Set(apiData.map(e => e.StationLocation));
-
   let best = null, bestDist = Infinity;
   for (const [name, [lat, lng]] of Object.entries(STOPS)) {
-    // Case-insensitive match against live data
     const liveName = [...liveNames].find(n => n.toLowerCase() === name.toLowerCase());
     if (!liveName) continue;
-
     const d = haversine(userLat, userLng, lat, lng);
     if (d < bestDist) { bestDist = d; best = { name: liveName, dist: d }; }
   }
   return best;
 }
 
-// ── Departure extraction ──────────────────────────────────────────────────────
 function extractDepartures(apiData, stopName) {
   const entries = apiData.filter(e => e.StationLocation === stopName);
   const deps = [];
-
   for (const entry of entries) {
     for (let i = 0; i <= 3; i++) {
-      const dest    = (entry[`Dest${i}`]     || '').trim();
-      const waitRaw = (entry[`Wait${i}`]     || '').trim();
-      const status  = (entry[`Status${i}`]   || '').trim();
-      const car     = (entry[`Carriages${i}`]|| '').trim();
-
+      const dest    = (entry[`Dest${i}`]      || '').trim();
+      const waitRaw = (entry[`Wait${i}`]      || '').trim();
+      const car     = (entry[`Carriages${i}`] || '').trim();
       if (!dest) continue;
-
       const waitNum = parseInt(waitRaw);
       const isDue   = waitNum === 0 || waitRaw === '0';
-      const wait    = isNaN(waitNum) ? 0 : waitNum;
-
-      deps.push({ dest, wait, isDue, carriages: car, direction: entry.Direction });
+      deps.push({ dest, wait: isNaN(waitNum) ? 0 : waitNum, isDue, carriages: car, direction: entry.Direction });
     }
   }
-
-  // Deduplicate by dest+wait, then sort
   const seen = new Set();
   return deps
     .filter(d => { const k = `${d.dest}|${d.wait}`; return seen.has(k) ? false : seen.add(k); })
     .sort((a, b) => a.wait - b.wait);
 }
 
-// ── Formatting ────────────────────────────────────────────────────────────────
-function fmtDist(km) {
-  return km < 1
-    ? `${Math.round(km * 1000)} m away`
-    : `${km.toFixed(1)} km away`;
+function computeWalkMin(distKm) {
+  if (!distKm) return 0;
+  return Math.round((distKm * 1.3 / 5) * 60);
 }
 
 function fmtTime(d) {
   return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
+function fmtDistLabel(distKm) {
+  return distKm < 1 ? `${Math.round(distKm * 1000)} M` : `${distKm.toFixed(1)} KM`;
+}
+
+function formatStopName(name) {
+  const words = name.split(' ');
+  if (words.length === 1) return `<em>${words[0]}</em>`;
+  const last = words.pop();
+  return `${words.join(' ')} <em>${last}</em>`;
+}
+
+// ── SVG / HTML fragments ──────────────────────────────────────────────────────
+const PIN_SVG = `<svg width="20" height="26" viewBox="0 0 24 32" style="display:block;flex-shrink:0">
+  <path d="M12 1 C5.4 1 1 5.4 1 12 c0 7.6 8.8 16.8 10.1 18.1 a1.3 1.3 0 0 0 1.8 0 C14.2 28.8 23 19.6 23 12 23 5.4 18.6 1 12 1 z"
+    fill="#e3a83a" stroke="#2e1d12" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="12" cy="12" r="3.6" fill="none" stroke="#2e1d12" stroke-width="1.8"/>
+</svg>`;
+
+function walkIconSVG(step) {
+  const a = step === 0;
+  return `<svg width="18" height="18" viewBox="-12 -2 24 28" style="overflow:visible;display:block">
+    <circle cx="0" cy="2" r="3" fill="none" stroke="#2e1d12" stroke-width="1.5"/>
+    <line x1="0" y1="5" x2="0" y2="14" stroke="#2e1d12" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="0" y1="8" x2="${a?4:-4}" y2="12" stroke="#2e1d12" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="0" y1="8" x2="${a?-3:3}" y2="12" stroke="#2e1d12" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="0" y1="14" x2="${a?-4:4}" y2="22" stroke="#2e1d12" stroke-width="1.8" stroke-linecap="round"/>
+    <line x1="0" y1="14" x2="${a?3:-3}" y2="22" stroke="#2e1d12" stroke-width="1.8" stroke-linecap="round"/>
+  </svg>`;
+}
+
+function carriageHTML(flip) {
+  return `<div style="position:relative;height:26px;width:96px;flex-shrink:0;transform:${flip?'scaleX(-1)':'none'};background:linear-gradient(180deg,#e3a83a 0%,#b8821f 100%);border:1.5px solid #2e1d12;border-radius:3px 12px 12px 3px;box-shadow:0 1px 0 #f0c563 inset,0 4px 0 -2px rgba(46,29,18,.18) inset">
+    <div style="position:absolute;left:6px;right:16px;top:5px;bottom:8px;background-image:repeating-linear-gradient(90deg,#2e1d12 0,#2e1d12 12px,transparent 12px,transparent 18px);border-radius:2px;opacity:.9;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6px,#000 calc(100% - 6px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6px,#000 calc(100% - 6px),transparent 100%)"></div>
+    <div style="position:absolute;right:4px;top:4px;width:9px;height:12px;background:#2e1d12;opacity:.85;clip-path:polygon(0 0,100% 25%,100% 75%,0 100%)"></div>
+    <div style="position:absolute;right:1px;bottom:6px;width:4px;height:4px;background:#fff3c2;border-radius:3px;box-shadow:0 0 6px #fff3c2"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:#2e1d12;opacity:.4;border-bottom-left-radius:2px;border-bottom-right-radius:10px"></div>
+    <div style="position:absolute;top:-7px;left:14px;right:30px;height:7px;background-image:linear-gradient(180deg,transparent 0 5px,#2e1d12 5px 6px,transparent 6px),repeating-linear-gradient(90deg,transparent 0,transparent 28px,#2e1d12 28px,#2e1d12 30px,transparent 30px,transparent 52px,#2e1d12 52px,#2e1d12 54px,transparent 54px,transparent 82px);background-repeat:no-repeat,repeat-x"></div>
+    <div style="position:absolute;left:8px;right:14px;bottom:-5px;height:10px;background-image:radial-gradient(circle 4px at 6px center,#2e1d12 0 3.5px,transparent 4px);background-size:24px 10px;background-repeat:repeat-x"></div>
+  </div>`;
+}
+
+function tramHTML() {
+  return carriageHTML(true)
+    + `<div style="width:6px;height:6px;margin-bottom:8px;align-self:center;flex-shrink:0;background:#2e1d12;border-radius:1px;opacity:.85"></div>`
+    + carriageHTML(false);
+}
+
+function carriageMarkHTML(count, color) {
+  const car = `<span style="position:relative;display:inline-block;width:14px;height:7px;border:1px solid ${color};border-radius:2px;box-shadow:0 0 4px ${color}66"><span style="position:absolute;left:2px;top:2px;width:3px;height:2px;background:${color}"></span><span style="position:absolute;left:8px;top:2px;width:3px;height:2px;background:${color}"></span></span>`;
+  return `<span style="display:inline-flex;gap:2px;align-items:center">${Array(count).fill(car).join('')}</span>`;
+}
+
 // ── Render functions ──────────────────────────────────────────────────────────
 function renderLoading() {
   return `
-    <div class="stop-hero">
-      <div class="stop-eyebrow">Nearest stop</div>
-      <div class="skel skel-stop-name"></div>
-      <div class="skel skel-stop-meta" style="margin-top:8px;"></div>
+    <div class="masthead">
+      <div class="masthead-brand">⌬ TRAM TIMES</div>
+      <div class="masthead-serial">No. 00813 · Ser. M</div>
     </div>
-    <div class="departures">
-      ${[...Array(5)].map(() => `<div class="skel skel-row"></div>`).join('')}
-    </div>`;
-}
-
-function renderDeparture(d) {
-  const carCount = /double/i.test(d.carriages) ? 2 : 1;
-  const pips = `<div class="carriage-pip">${'<i></i>'.repeat(carCount)}</div>`;
-  const carLabel = carCount === 2 ? 'Double' : 'Single';
-
-  const waitEl = d.isDue
-    ? `<div class="wait-num is-due">DUE</div>`
-    : `<div class="wait-num">${d.wait}</div><div class="wait-unit">min</div>`;
-
-  return `
-    <div class="dep-row ${d.isDue ? 'due-now' : ''}">
-      <div class="dep-info">
-        <div class="dep-dest">${d.dest}</div>
-        <div class="dep-sub">${pips}<span>${carLabel}</span></div>
+    <div class="masthead-rule"></div>
+    <div style="margin-bottom:16px">
+      <div class="skel" style="width:40%;height:10px;margin-bottom:10px"></div>
+      <div class="skel" style="width:70%;height:44px;margin-bottom:8px"></div>
+      <div class="skel" style="width:40%;height:11px;margin-left:30px"></div>
+    </div>
+    <div class="stub-wrap">
+      <div class="perf-top"></div>
+      <div style="background:var(--paper-deep);padding:18px 14px">
+        <div class="skel" style="height:44px;width:60%"></div>
       </div>
-      <div class="dep-wait">${waitEl}</div>
+      <div class="perf-bottom"></div>
+    </div>
+    <div style="margin-top:16px;flex:1">
+      <div class="skel" style="height:100%;min-height:150px;border-radius:10px"></div>
     </div>`;
 }
 
-const WALK_SVG = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="8" cy="2.5" r="1.5" fill="currentColor"/>
-  <path d="M8 4.5L6 9H7.5L7 13H9L8.5 9H10L8 4.5Z" fill="currentColor"/>
-  <path d="M6 7L4.5 9M10 7L11.5 9" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
-</svg>`;
+function renderTicket(nearest, deps, walkMin, catchable, leaveIn, updatedDate, isPinned) {
+  const eyebrow = isPinned ? 'PINNED STOP' : 'NEAREST STOP';
+  const distLabel = fmtDistLabel(nearest.dist);
+  const walkLabel = walkMin <= 1 ? 'AT STOP' : `~${walkMin} MIN WALK`;
 
-function renderWalkCard(deps, distKm) {
-  if (!distKm) return '';
+  // Classify LED rows
+  const firstCatchIdx = deps.findIndex(d => !d.isDue && d.wait >= walkMin);
+  const ledDeps = deps.slice(0, 4);
+  const ledRows = ledDeps.map((d, i) => {
+    let state;
+    if (d.isDue || d.wait < walkMin) state = 'miss';
+    else if (i === firstCatchIdx) state = 'catch';
+    else state = 'later';
+    const colors = { miss: '#ff7a3d', catch: '#ffd86b', later: '#f5a623' };
+    const glyphs = { catch: '◆', miss: '✕', later: '·' };
+    const c = colors[state];
+    const carCount = /double/i.test(d.carriages) ? 2 : 1;
+    return `<div class="led-row">
+      <span class="led-glyph">${glyphs[state]}</span>
+      <span class="led-dest" style="color:${c};text-shadow:0 0 6px ${c}88,0 0 14px ${c}44">${d.dest.toUpperCase()}</span>
+      ${carriageMarkHTML(carCount, c)}
+      <span class="led-mins" style="color:${c};text-shadow:0 0 8px ${c}aa,0 0 16px ${c}55">${d.isDue ? 'DUE' : d.wait}</span>
+    </div>`;
+  }).join('');
 
-  const WALK_SPEED_KMH = 5;
-  const ROUTE_FACTOR   = 1.3; // straight-line → actual walking distance
-  const walkMin = Math.round((distKm * ROUTE_FACTOR / WALK_SPEED_KMH) * 60);
-
-  // At the stop
+  // Leave-in stub
+  let stubInner;
   if (walkMin <= 1) {
-    const next = deps[0];
-    if (!next) return '';
-    const t = next.isDue ? 'due now' : `in ${next.wait} min`;
-    return `<div class="walk-card at-stop">
-      <div class="walk-card-icon">${WALK_SVG}</div>
-      <div>
-        <div class="walk-card-main">You're at the stop</div>
-        <div class="walk-card-sub">Next tram <strong style="color:var(--due)">${next.dest}</strong> ${t}</div>
-      </div>
-    </div>`;
+    stubInner = `
+      <div class="hex-seal"><div class="walk-icon-container">${walkIconSVG(0)}</div></div>
+      <div class="stub-text">
+        <div class="stub-eyebrow">YOU'RE HERE</div>
+        <div class="stub-main"><span class="leave-unit" style="font-style:normal;font-size:24px">Board now</span></div>
+      </div>`;
+  } else if (!catchable) {
+    stubInner = `
+      <div class="hex-seal"><div class="walk-icon-container">${walkIconSVG(0)}</div></div>
+      <div class="stub-text">
+        <div class="stub-eyebrow">NEXT TRAM</div>
+        <div class="stub-main"><span class="leave-unit">Check back soon</span></div>
+      </div>`;
+  } else {
+    stubInner = `
+      <div class="hex-seal"><div class="walk-icon-container">${walkIconSVG(0)}</div></div>
+      <div class="stub-text">
+        <div class="stub-eyebrow">LEAVE IN</div>
+        <div class="stub-main">
+          <span class="leave-num">${leaveIn}</span>
+          <span class="leave-unit">min</span>
+          <span class="leave-caption">for the <strong>${catchable.wait}-min</strong> to ${catchable.dest}</span>
+        </div>
+      </div>`;
   }
 
-  // Find the first tram you can still catch by leaving now
-  const catchable = deps.find(d => d.wait >= walkMin);
-
-  if (catchable) {
-    const spare = catchable.wait - walkMin;
-    const leaveMsg  = spare >= 2 ? `Leave now or in <strong>${spare} min</strong>` : `Leave now`;
-    const catchMsg  = catchable.isDue ? 'due now' : `in ${catchable.wait} min`;
-    return `<div class="walk-card">
-      <div class="walk-card-icon">${WALK_SVG}</div>
-      <div>
-        <div class="walk-card-main">${leaveMsg} → catch <strong>${catchable.dest}</strong> ${catchMsg}</div>
-        <div class="walk-card-sub">~${walkMin} min walk to stop</div>
-      </div>
-    </div>`;
-  }
-
-  // All current trams leave before you'd arrive — find when to leave for the next one
-  const next = deps[deps.length - 1];
-  if (next) {
-    const leaveIn = walkMin - next.wait;
-    return `<div class="walk-card">
-      <div class="walk-card-icon">${WALK_SVG}</div>
-      <div>
-        <div class="walk-card-main">Next trams too soon · leave in <strong>~${leaveIn} min</strong></div>
-        <div class="walk-card-sub">~${walkMin} min walk · check back shortly for new times</div>
-      </div>
-    </div>`;
-  }
-
-  return '';
-}
-
-const PIN_SVG = `<svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-  <path d="M8.5 1L12 4.5L8.5 8H7L5 6V4.5L8.5 1Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" fill="currentColor" fill-opacity="0.15"/>
-  <path d="M5 6L2 9" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-</svg>`;
-
-function getPinned()       { return localStorage.getItem('pinnedStop'); }
-function pinStop(name)     { localStorage.setItem('pinnedStop', name); }
-function unpinStop()       { localStorage.removeItem('pinnedStop'); }
-
-function renderDepartures(nearest, deps, isPinned) {
-  const rows = deps.length
-    ? deps.slice(0, 8).map(renderDeparture).join('')
-    : `<div class="state-wrap" style="justify-content:flex-start;padding-top:40px;">
-         <div class="state-glyph">🚊</div>
-         <div class="state-title">No departures</div>
-         <div class="state-body">No live departures at ${nearest.name} right now.</div>
-       </div>`;
-
-  const meta = isPinned
-    ? `${fmtDist(nearest.dist)} &middot; Pinned`
-    : fmtDist(nearest.dist);
+  const showTram = !!(catchable && leaveIn !== null && walkMin > 1);
 
   return `
-    <div class="stop-hero">
-      <div class="stop-eyebrow">${isPinned ? 'Pinned stop' : 'Nearest stop'}</div>
-      <div class="stop-name-row">
-        <div class="stop-name">${nearest.name}</div>
-        <button class="btn-pin ${isPinned ? 'pinned' : ''}" data-stop="${nearest.name}">${PIN_SVG}</button>
-      </div>
-      <div class="stop-meta">${meta}</div>
+    <div class="masthead">
+      <div class="masthead-brand">⌬ TRAM TIMES</div>
+      <div class="masthead-serial">No. 00813 · Ser. M</div>
     </div>
-    ${renderWalkCard(deps, nearest.dist)}
-    <div class="departures">${rows}</div>`;
+    <div class="masthead-rule"></div>
+
+    <div class="stop-block">
+      <div class="stop-left">
+        <div class="stop-eyebrow">${eyebrow}</div>
+        <div class="stop-name-row">
+          ${PIN_SVG}
+          <div class="stop-name btn-pin" data-stop="${nearest.name}">${formatStopName(nearest.name)}</div>
+        </div>
+        <div class="stop-dist">${distLabel} · ${walkLabel}</div>
+      </div>
+      <div class="live-stamp" id="live-stamp">LIVE</div>
+    </div>
+
+    <div class="stub-wrap">
+      <div class="perf-top"></div>
+      <div class="stub-body">${stubInner}</div>
+      <div class="perf-bottom"></div>
+    </div>
+
+    ${showTram ? `<div class="tram-track">
+      <div class="tram-clip">
+        <div id="tram-vehicle">${tramHTML()}</div>
+      </div>
+      <div class="tram-rail"></div>
+      <div class="tram-sleepers"></div>
+    </div>` : ''}
+
+    <div style="flex:1;min-height:0;margin-top:${showTram ? '0' : '14px'}">
+      <div class="led-bezel">
+        <div class="led-screen">
+          <div class="led-scanlines"></div>
+          <div class="led-vignette"></div>
+          <div class="led-header">
+            <span class="led-title">DEPARTURES</span>
+            <div class="led-live-group">
+              <span class="led-blink-dot"></span>
+              <span class="led-live-text">LIVE</span>
+            </div>
+          </div>
+          <div class="led-rows">${ledRows || `<div style="padding:16px 0;font-family:'VT323',monospace;font-size:20px;color:#f5a623;text-align:center;letter-spacing:.1em">NO DEPARTURES</div>`}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ticket-footer">
+      <span class="issued-time">ISSUED ${fmtTime(updatedDate)}</span>
+      <button class="btn-refresh" id="btn-refresh">↻ Refresh</button>
+    </div>`;
 }
 
 function renderError(msg) {
   return `
+    <div class="masthead">
+      <div class="masthead-brand">⌬ TRAM TIMES</div>
+      <div class="masthead-serial">No. 00813 · Ser. M</div>
+    </div>
+    <div class="masthead-rule"></div>
     <div class="state-wrap">
       <div class="state-glyph">⚡</div>
       <div class="state-title">Can't connect</div>
@@ -963,18 +740,71 @@ function renderError(msg) {
 
 function renderNoLocation(code) {
   const messages = {
-    1: 'Permission denied. On iPhone: Settings → Privacy & Security → Location Services → Safari → set to "While Using". Then reload.',
-    2: "Your location couldn’t be determined. Make sure Location Services is on.",
+    1: 'Permission denied. On iPhone: Settings → Privacy & Security → Location Services → Safari → "While Using". Then reload.',
+    2: "Your location couldn't be determined. Make sure Location Services is on.",
     3: 'Location timed out. Check Location Services is enabled for Safari in iPhone Settings.',
   };
-  const body = messages[code] || 'Allow location access to find your nearest tram stop.';
   return `
+    <div class="masthead">
+      <div class="masthead-brand">⌬ TRAM TIMES</div>
+      <div class="masthead-serial">No. 00813 · Ser. M</div>
+    </div>
+    <div class="masthead-rule"></div>
     <div class="state-wrap">
       <div class="state-glyph">📍</div>
       <div class="state-title">Location needed</div>
-      <div class="state-body">${body}</div>
+      <div class="state-body">${messages[code] || 'Allow location access to find your nearest tram stop.'}</div>
       <button class="btn-action" id="btn-locate">Try again</button>
     </div>`;
+}
+
+// ── Walk icon animation ───────────────────────────────────────────────────────
+let walkStep = 0;
+setInterval(() => {
+  walkStep = (walkStep + 1) % 2;
+  document.querySelectorAll('.walk-icon-container').forEach(el => {
+    el.innerHTML = walkIconSVG(walkStep);
+  });
+}, 320);
+
+// ── Tram animation ────────────────────────────────────────────────────────────
+const TRAM_W = 198;
+let tramTarget = 0.5;
+let tramTimers = [];
+
+function setTramPhase(phase) {
+  const v = document.getElementById('tram-vehicle');
+  if (!v) return;
+  let left, transition;
+  if (phase === 'hidden') {
+    left = `-${TRAM_W + 20}px`; transition = 'none';
+  } else if (phase === 'enter') {
+    const t = Math.max(0.1, tramTarget * 0.5);
+    left = `calc(${t * 100}% - ${TRAM_W * 0.4}px)`;
+    transition = 'left 1.5s cubic-bezier(0.22,0.61,0.36,1)';
+  } else if (phase === 'cruise') {
+    left = `calc(${tramTarget * 100}% - ${TRAM_W * tramTarget}px)`;
+    transition = 'left 6s cubic-bezier(0.45,0.05,0.55,0.95)';
+  } else {
+    left = `calc(100% + 20px)`;
+    transition = 'left 2.2s cubic-bezier(0.45,0,0.7,0.25)';
+  }
+  v.style.left = left;
+  v.style.transition = transition;
+}
+
+function startTramAnimation(target) {
+  tramTarget = target;
+  tramTimers.forEach(clearTimeout);
+  tramTimers = [];
+  const cycle = () => {
+    setTramPhase('hidden');
+    tramTimers.push(setTimeout(() => setTramPhase('enter'),  150));
+    tramTimers.push(setTimeout(() => setTramPhase('cruise'), 1800));
+    tramTimers.push(setTimeout(() => setTramPhase('depart'), 8500));
+    tramTimers.push(setTimeout(cycle, 12000));
+  };
+  cycle();
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
@@ -982,29 +812,24 @@ let userLat = null, userLng = null;
 let refreshTimer = null;
 let refreshing = false;
 
-const content     = document.getElementById('content');
-const statusPill  = document.getElementById('status-pill');
-const statusLabel = document.getElementById('status-label');
-const footer      = document.getElementById('footer');
-const updatedTime = document.getElementById('updated-time');
-const btnRefresh  = document.getElementById('btn-refresh');
-const refreshIcon = document.getElementById('refresh-icon');
+const content = document.getElementById('content');
 
-function setStatus(state) {
-  statusPill.className = 'status-pill ' + state;
-  statusLabel.textContent = { live: 'Live', loading: 'Loading', error: 'Error' }[state] || state;
-}
-
-function setUpdated(date) {
-  updatedTime.textContent = 'Updated ' + fmtTime(date);
-  footer.style.display = 'flex';
+function setLiveStamp(isLive) {
+  document.getElementById('live-stamp')?.classList.toggle('hidden', !isLive);
 }
 
 function setRefreshing(on) {
   refreshing = on;
-  refreshIcon.style.animation = on ? 'spin 0.7s linear infinite' : '';
-  btnRefresh.disabled = on;
+  const btn = document.getElementById('btn-refresh');
+  if (!btn) return;
+  btn.disabled = on;
+  btn.classList.toggle('spinning', on);
+  btn.innerHTML = on ? '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="animation:spin 0.7s linear infinite"><path d="M10.5 6A4.5 4.5 0 1 1 6 1.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M6 1.5L8 3.5M6 1.5L8 0" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg> Refresh' : '↻ Refresh';
 }
+
+function getPinned()   { return localStorage.getItem('pinnedStop'); }
+function pinStop(n)    { localStorage.setItem('pinnedStop', n); }
+function unpinStop()   { localStorage.removeItem('pinnedStop'); }
 
 function resolveStop(data) {
   const pinned = getPinned();
@@ -1017,6 +842,17 @@ function resolveStop(data) {
   return nearest ? { ...nearest, isPinned: false } : null;
 }
 
+function applyTicket(stop, deps) {
+  const walkMin = computeWalkMin(stop.dist);
+  const catchable = deps.find(d => !d.isDue && d.wait >= walkMin);
+  const leaveIn = catchable ? Math.max(0, catchable.wait - walkMin) : null;
+  content.innerHTML = renderTicket(stop, deps, walkMin, catchable, leaveIn, new Date(), stop.isPinned);
+  if (catchable && leaveIn !== null && walkMin > 1) {
+    const target = Math.max(0.05, Math.min(0.85, 1 - leaveIn / walkMin));
+    startTramAnimation(target);
+  }
+}
+
 async function doRefresh() {
   if (!userLat || refreshing) return;
   setRefreshing(true);
@@ -1025,11 +861,10 @@ async function doRefresh() {
     const stop = resolveStop(data);
     if (!stop) throw new Error('No stops found nearby.');
     const deps = extractDepartures(data, stop.name);
-    content.innerHTML = renderDepartures(stop, deps, stop.isPinned);
-    setUpdated(new Date());
-    setStatus('live');
+    applyTicket(stop, deps);
+    setLiveStamp(true);
   } catch (e) {
-    setStatus('error');
+    setLiveStamp(false);
   } finally {
     setRefreshing(false);
   }
@@ -1037,22 +872,16 @@ async function doRefresh() {
 
 async function doInit() {
   content.innerHTML = renderLoading();
-  footer.style.display = 'none';
-  setStatus('loading');
 
   let pos;
   try {
-    pos = await new Promise((resolve, reject) => {
+    pos = await new Promise((resolve, reject) =>
       navigator.geolocation.getCurrentPosition(resolve, reject, {
-        enableHighAccuracy: false,
-        timeout: 15000,
-        maximumAge: 0,
-      });
-    });
+        enableHighAccuracy: false, timeout: 15000, maximumAge: 0,
+      })
+    );
   } catch (e) {
     content.innerHTML = renderNoLocation(e.code);
-    setStatus('error');
-    // Wire up Try Again button via delegation since it's inside content
     document.getElementById('btn-locate')?.addEventListener('click', doInit);
     return;
   }
@@ -1065,51 +894,45 @@ async function doInit() {
     const stop = resolveStop(data);
     if (!stop) {
       content.innerHTML = renderError("Couldn't match your location to a tram stop. Are you near the Metrolink network?");
-      setStatus('error');
       return;
     }
     const deps = extractDepartures(data, stop.name);
-    content.innerHTML = renderDepartures(stop, deps, stop.isPinned);
-    setUpdated(new Date());
-    setStatus('live');
-
+    applyTicket(stop, deps);
+    setLiveStamp(true);
     clearInterval(refreshTimer);
     refreshTimer = setInterval(doRefresh, 30000);
   } catch (e) {
     content.innerHTML = renderError('Could not load tram times. Check your connection and try again.');
-    setStatus('error');
   }
 }
 
-// Persistent refresh button
-btnRefresh.addEventListener('click', doRefresh);
+// ── Event delegation ──────────────────────────────────────────────────────────
+content.addEventListener('click', e => {
+  if (e.target.closest('#btn-refresh, .btn-refresh')) doRefresh();
+  if (e.target.closest('.btn-pin, .stop-name, .stop-name-row')) openPicker();
+});
 
-// ── Stop picker ──────────────────────────────────────────────────────────────
+// ── Stop picker ───────────────────────────────────────────────────────────────
 const pickerOverlay = document.getElementById('picker-overlay');
 const pickerSheet   = document.getElementById('picker-sheet');
 const pickerList    = document.getElementById('picker-list');
 
 function openPicker() {
   if (!userLat) return;
-
-  // Build list of all known stops sorted by distance from user
   const pinned = getPinned();
-  const rows = Object.entries(STOPS)
+  pickerList.innerHTML = Object.entries(STOPS)
     .map(([name, [lat, lng]]) => ({ name, dist: haversine(userLat, userLng, lat, lng) }))
     .sort((a, b) => a.dist - b.dist)
     .map(({ name, dist }) => {
-      const sel = pinned === name ? 'selected' : '';
-      return `<div class="picker-row ${sel}" data-stop="${name}">
+      const distKm = dist;
+      const distStr = distKm < 1 ? `${Math.round(distKm*1000)} m` : `${distKm.toFixed(1)} km`;
+      return `<div class="picker-row ${pinned === name ? 'selected' : ''}" data-stop="${name}">
         <span class="picker-stop-name">${name}</span>
-        <span class="picker-dist">${fmtDist(dist)}</span>
+        <span class="picker-dist">${distStr}</span>
       </div>`;
     }).join('');
-
-  pickerList.innerHTML = rows;
   pickerOverlay.classList.add('open');
   pickerSheet.classList.add('open');
-
-  // Scroll selected stop into view
   pickerSheet.querySelector('.selected')?.scrollIntoView({ block: 'center' });
 }
 
@@ -1119,7 +942,6 @@ function closePicker() {
 }
 
 pickerOverlay.addEventListener('click', closePicker);
-
 pickerList.addEventListener('click', e => {
   const row = e.target.closest('.picker-row');
   if (!row) return;
@@ -1127,13 +949,6 @@ pickerList.addEventListener('click', e => {
   if (getPinned() === stopName) unpinStop(); else pinStop(stopName);
   closePicker();
   doRefresh();
-});
-
-// Pin button opens picker instead of toggling directly
-content.addEventListener('click', e => {
-  const btn = e.target.closest('.btn-pin');
-  if (!btn) return;
-  openPicker();
 });
 
 doInit();
