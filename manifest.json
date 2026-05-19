@@ -9,14 +9,8 @@
   "background_color": "#f1e6c8",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' fill='%23f1e6c8'/><polygon points='96,16 168,58 168,134 96,176 24,134 24,58' fill='none' stroke='%232e1d12' stroke-width='8' opacity='0.4'/><polygon points='96,56 136,79 136,121 96,144 56,121 56,79' fill='%23e3a83a'/></svg>",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%23f1e6c8'/><polygon points='256,40 448,146 448,358 256,464 64,358 64,146' fill='none' stroke='%232e1d12' stroke-width='18' opacity='0.4'/><polygon points='256,148 352,204 352,308 256,364 160,308 160,204' fill='%23e3a83a'/></svg>",
-      "sizes": "512x512",
+      "src": "icon.svg",
+      "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     }

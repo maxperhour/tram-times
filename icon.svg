@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
+  <defs>
+    <clipPath id="body">
+      <rect x="10" y="50" width="160" height="80" rx="18"/>
+    </clipPath>
+  </defs>
+
+  <!-- Tram body (center x=90) -->
+  <rect x="10" y="50" width="160" height="80" rx="18" fill="#e3a83a"/>
+
+  <!-- Lower skirt -->
+  <rect x="10" y="112" width="160" height="18" fill="#c98020" clip-path="url(#body)"/>
+
+  <!--
+    Layout centred on x=90:
+    Left window:  x=20–50  (w=30)
+    Left door:    x=54–58  (centre x=56,  56 = 90−34)
+    Mid window:   x=66–114 (w=48, centre x=90)
+    Right door:   x=122–126 (centre x=124, 124 = 90+34)
+    Right window: x=130–160 (w=30)
+  -->
+
+  <!-- Door separator lines (symmetric, ±34 from centre) -->
+  <rect x="54" y="50" width="4" height="80" fill="#c98020" clip-path="url(#body)"/>
+  <rect x="122" y="50" width="4" height="80" fill="#c98020" clip-path="url(#body)"/>
+
+  <!-- Left end window (tall, narrow) -->
+  <rect x="20" y="55" width="30" height="52" rx="8" fill="#2e1d12"/>
+
+  <!-- Middle window (centred at x=90) -->
+  <rect x="66" y="64" width="48" height="36" rx="9" fill="#2e1d12"/>
+
+  <!-- Right end window (tall, narrow, matches left) -->
+  <rect x="130" y="55" width="30" height="52" rx="8" fill="#2e1d12"/>
+
+  <!-- Headlight -->
+  <circle cx="163" cy="120" r="8" fill="#f7e8c8" clip-path="url(#body)"/>
+</svg>
