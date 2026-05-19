@@ -39,13 +39,34 @@
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
-    html, body { min-height: 100dvh; background: var(--paper); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    [data-theme="dark"] {
+      --paper:       #1a1108;
+      --paper-deep:  #231709;
+      --paper-shade: #2e1e0d;
+      --ink:         #f2e6ce;
+      --ink-soft:    #b89060;
+      --ink-faint:   rgba(242,230,206,0.28);
+      --rule:        rgba(242,230,206,0.13);
+      --red:         #e05a36;
+      --yellow-deep: #c4901a;
+      --yellow-soft: #f5c863;
+      --led-dot:     rgba(245,158,11,0.09);
+    }
+
+    html, body { min-height: 100dvh; background: var(--paper); -webkit-font-smoothing: antialiased; overflow-x: hidden; transition: background 0.25s ease; }
 
     body {
       background-image:
         radial-gradient(ellipse at 30% 0%, rgba(255,255,255,0.5), transparent 60%),
         radial-gradient(ellipse at 80% 100%, rgba(46,29,18,0.08), transparent 70%),
         url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='1.4' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0 0.07  0 0 0 0.18 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.6'/></svg>");
+    }
+
+    [data-theme="dark"] body {
+      background-image:
+        radial-gradient(ellipse at 25% 8%, rgba(210,145,50,0.13), transparent 55%),
+        radial-gradient(ellipse at 80% 92%, rgba(170,100,25,0.08), transparent 60%),
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence baseFrequency='1.4' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 0.12  0 0 0 0 0.08  0 0 0 0 0.04  0 0 0 0 0.2 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.45'/></svg>");
     }
 
     #app {
@@ -89,6 +110,7 @@
       letter-spacing: -0.01em; cursor: pointer;
     }
     .stop-name em { font-style: italic; color: var(--yellow-deep); }
+    [data-theme="dark"] .stop-name em { color: var(--yellow); }
     .stop-dist {
       font-family: 'IBM Plex Mono', monospace;
       font-size: 11px; color: var(--ink-soft); letter-spacing: 0.18em;
@@ -171,6 +193,11 @@
       background-image: repeating-linear-gradient(90deg, var(--ink) 0, var(--ink) 2px, transparent 2px, transparent 14px);
       opacity: 0.5;
     }
+    [data-theme="dark"] .tram-rail { background: var(--ink-soft); opacity: 0.6; }
+    [data-theme="dark"] .tram-sleepers {
+      background-image: repeating-linear-gradient(90deg, var(--ink-soft) 0, var(--ink-soft) 2px, transparent 2px, transparent 14px);
+      opacity: 0.35;
+    }
     .tram-clip {
       position: absolute; left: 0; right: 0; top: 0; bottom: 3px; overflow: hidden;
       -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 8%, #000 92%, transparent 100%);
@@ -181,12 +208,17 @@
       display: flex; align-items: flex-end;
       filter: drop-shadow(0 2px 0 rgba(46,29,18,0.18));
     }
+    [data-theme="dark"] #tram-vehicle { filter: drop-shadow(0 2px 6px rgba(0,0,0,0.65)); }
 
     /* ── LED board ── */
     .led-bezel {
       border-radius: 10px; padding: 3px;
       background: linear-gradient(180deg, #3a2a1f 0%, #1f1610 100%);
       box-shadow: 0 1px 0 var(--yellow-soft), inset 0 0 0 1px rgba(0,0,0,0.4);
+    }
+    [data-theme="dark"] .led-bezel {
+      background: linear-gradient(180deg, #4a3820 0%, #2a1e10 100%);
+      box-shadow: 0 0 0 1px rgba(180,130,50,0.22), 0 4px 24px rgba(0,0,0,0.6), 0 0 40px rgba(245,158,11,0.07);
     }
     .led-screen {
       background: var(--led-bg); border-radius: 8px; padding: 8px 14px;
@@ -264,6 +296,7 @@
       display: flex; justify-content: space-between; align-items: center;
       margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--ink);
     }
+    [data-theme="dark"] .ticket-footer { border-top-color: rgba(242,230,206,0.2); }
     .issued-time {
       font-family: 'IBM Plex Mono', monospace;
       font-size: 9px; color: var(--ink-soft); letter-spacing: 0.25em;
@@ -317,6 +350,14 @@
       border-radius: 4px;
       animation: shimmer 1.6s ease-in-out infinite;
     }
+    [data-theme="dark"] .skel {
+      background: linear-gradient(90deg,
+        rgba(242,230,206,0.04) 25%,
+        rgba(242,230,206,0.08) 50%,
+        rgba(242,230,206,0.04) 75%
+      );
+      background-size: 300% 100%;
+    }
 
     @keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
     @keyframes led-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
@@ -368,11 +409,36 @@
       font-family: 'IBM Plex Mono', monospace;
       font-size: 11px; color: var(--ink-soft); flex-shrink: 0; margin-left: 12px;
     }
+
+    [data-theme="dark"] .picker-overlay { background: rgba(0,0,0,0.6); }
+    [data-theme="dark"] .picker-row { border-bottom-color: rgba(242,230,206,0.08); }
+    [data-theme="dark"] .picker-row:active { background: var(--paper-deep); }
+    [data-theme="dark"] .picker-row.selected { background: rgba(227,168,58,0.12); }
+
+    /* ── Theme toggle button ── */
+    .btn-theme-toggle {
+      position: fixed;
+      bottom: calc(var(--safe-bottom) + 20px);
+      left: 20px;
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      border: 1.5px solid var(--ink);
+      background: var(--paper-deep);
+      color: var(--ink);
+      font-size: 16px; line-height: 1;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 5;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+    }
+    .btn-theme-toggle:active { background: var(--paper-shade); }
   </style>
 </head>
 <body>
 <div id="app">
   <div id="content"></div>
+  <button class="btn-theme-toggle" id="btn-dark-mode" aria-label="Toggle dark mode">☽</button>
   <div class="picker-overlay" id="picker-overlay"></div>
   <div class="picker-sheet" id="picker-sheet">
     <div class="picker-handle"></div>
@@ -561,17 +627,36 @@ function formatStopName(name) {
   return `${words.join(' ')} <em>${last}</em>`;
 }
 
+// ── Dark mode ─────────────────────────────────────────────────────────────────
+let isDark = localStorage.getItem('darkMode') === 'true';
+
+function applyTheme() {
+  document.documentElement.dataset.theme = isDark ? 'dark' : '';
+  document.querySelector('meta[name="theme-color"]').content = isDark ? '#1a1108' : '#f1e6c8';
+  const btn = document.getElementById('btn-dark-mode');
+  if (btn) btn.textContent = isDark ? '☀' : '☽';
+}
+
+function toggleDark() {
+  isDark = !isDark;
+  localStorage.setItem('darkMode', isDark);
+  applyTheme();
+  if (lastStop && lastDeps.length) applyTicket(lastStop, lastDeps);
+}
+
 // ── SVG / HTML fragments ──────────────────────────────────────────────────────
-const PIN_SVG = `<svg width="20" height="26" viewBox="0 0 24 32" style="display:block;flex-shrink:0">
+function getPinSVG() {
+  const stroke = isDark ? '#b89060' : '#2e1d12';
+  return `<svg width="20" height="26" viewBox="0 0 24 32" style="display:block;flex-shrink:0">
   <path d="M12 1 C5.4 1 1 5.4 1 12 c0 7.6 8.8 16.8 10.1 18.1 a1.3 1.3 0 0 0 1.8 0 C14.2 28.8 23 19.6 23 12 23 5.4 18.6 1 12 1 z"
-    fill="#e3a83a" stroke="#2e1d12" stroke-width="1.8" stroke-linejoin="round"/>
-  <circle cx="12" cy="12" r="3.6" fill="none" stroke="#2e1d12" stroke-width="1.8"/>
+    fill="#e3a83a" stroke="${stroke}" stroke-width="1.8" stroke-linejoin="round"/>
+  <circle cx="12" cy="12" r="3.6" fill="none" stroke="${stroke}" stroke-width="1.8"/>
 </svg>`;
+}
 
 function walkIconSVG() {
-  // Static side-profile walking figure. Bezier curves give each limb
-  // a natural bend at the elbow/knee rather than straight sticks.
-  const s = '#2e1d12', w = 'stroke="#2e1d12" stroke-linecap="round" fill="none"';
+  const s = isDark ? '#1e1008' : '#2e1d12';
+  const w = `stroke="${s}" stroke-linecap="round" fill="none"`;
   return `<svg width="18" height="24" viewBox="0 0 22 32" style="display:block">
     <circle cx="12" cy="4" r="3.2" fill="${s}"/>
     <line x1="12" y1="7.2" x2="11" y2="19" stroke="${s}" stroke-width="1.8" stroke-linecap="round"/>
@@ -582,21 +667,24 @@ function walkIconSVG() {
   </svg>`;
 }
 
-
 function carriageHTML(flip) {
-  return `<div style="position:relative;height:26px;width:96px;flex-shrink:0;transform:${flip?'scaleX(-1)':'none'};background:linear-gradient(180deg,#e3a83a 0%,#b8821f 100%);border:1.5px solid #2e1d12;border-radius:3px 12px 12px 3px;box-shadow:0 1px 0 #f0c563 inset,0 4px 0 -2px rgba(46,29,18,.18) inset">
-    <div style="position:absolute;left:6px;right:16px;top:5px;bottom:8px;background-image:repeating-linear-gradient(90deg,#2e1d12 0,#2e1d12 12px,transparent 12px,transparent 18px);border-radius:2px;opacity:.9;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6px,#000 calc(100% - 6px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6px,#000 calc(100% - 6px),transparent 100%)"></div>
-    <div style="position:absolute;right:4px;top:4px;width:9px;height:12px;background:#2e1d12;opacity:.85;clip-path:polygon(0 0,100% 25%,100% 75%,0 100%)"></div>
-    <div style="position:absolute;right:1px;bottom:6px;width:4px;height:4px;background:#fff3c2;border-radius:3px;box-shadow:0 0 6px #fff3c2"></div>
-    <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:#2e1d12;opacity:.4;border-bottom-left-radius:2px;border-bottom-right-radius:10px"></div>
-    <div style="position:absolute;top:-7px;left:14px;right:30px;height:7px;background-image:linear-gradient(180deg,transparent 0 5px,#2e1d12 5px 6px,transparent 6px),repeating-linear-gradient(90deg,transparent 0,transparent 28px,#2e1d12 28px,#2e1d12 30px,transparent 30px,transparent 52px,#2e1d12 52px,#2e1d12 54px,transparent 54px,transparent 82px);background-repeat:no-repeat,repeat-x"></div>
-    <div style="position:absolute;left:8px;right:14px;bottom:-5px;height:10px;background-image:radial-gradient(circle 4px at 6px center,#2e1d12 0 3.5px,transparent 4px);background-size:24px 10px;background-repeat:repeat-x"></div>
+  const ink = isDark ? '#1e1008' : '#2e1d12';
+  const yDeep = isDark ? '#c4901a' : '#b8821f';
+  const yTop = isDark ? '#f5c863' : '#f0c563';
+  return `<div style="position:relative;height:26px;width:96px;flex-shrink:0;transform:${flip?'scaleX(-1)':'none'};background:linear-gradient(180deg,#e3a83a 0%,${yDeep} 100%);border:1.5px solid ${ink};border-radius:3px 12px 12px 3px;box-shadow:0 1px 0 ${yTop} inset,0 4px 0 -2px rgba(10,5,0,.25) inset">
+    <div style="position:absolute;left:6px;right:16px;top:5px;bottom:8px;background-image:repeating-linear-gradient(90deg,${ink} 0,${ink} 12px,transparent 12px,transparent 18px);border-radius:2px;opacity:.9;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 6px,#000 calc(100% - 6px),transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 6px,#000 calc(100% - 6px),transparent 100%)"></div>
+    <div style="position:absolute;right:4px;top:4px;width:9px;height:12px;background:${ink};opacity:.85;clip-path:polygon(0 0,100% 25%,100% 75%,0 100%)"></div>
+    <div style="position:absolute;right:1px;bottom:6px;width:4px;height:4px;background:#fff3c2;border-radius:3px;box-shadow:0 0 ${isDark?'8px #fff3c2,0 0 18px rgba(255,243,194,0.7)':'6px #fff3c2'}"></div>
+    <div style="position:absolute;left:0;right:0;bottom:0;height:4px;background:${ink};opacity:.4;border-bottom-left-radius:2px;border-bottom-right-radius:10px"></div>
+    <div style="position:absolute;top:-7px;left:14px;right:30px;height:7px;background-image:linear-gradient(180deg,transparent 0 5px,${ink} 5px 6px,transparent 6px),repeating-linear-gradient(90deg,transparent 0,transparent 28px,${ink} 28px,${ink} 30px,transparent 30px,transparent 52px,${ink} 52px,${ink} 54px,transparent 54px,transparent 82px);background-repeat:no-repeat,repeat-x"></div>
+    <div style="position:absolute;left:8px;right:14px;bottom:-5px;height:10px;background-image:radial-gradient(circle 4px at 6px center,${ink} 0 3.5px,transparent 4px);background-size:24px 10px;background-repeat:repeat-x"></div>
   </div>`;
 }
 
 function tramHTML() {
+  const ink = isDark ? '#1e1008' : '#2e1d12';
   return carriageHTML(true)
-    + `<div style="width:6px;height:6px;margin-bottom:8px;align-self:center;flex-shrink:0;background:#2e1d12;border-radius:1px;opacity:.85"></div>`
+    + `<div style="width:6px;height:6px;margin-bottom:8px;align-self:center;flex-shrink:0;background:${ink};border-radius:1px;opacity:.85"></div>`
     + carriageHTML(false);
 }
 
@@ -707,7 +795,7 @@ function renderTicket(nearest, ledDeps, allDeps, walkMin, catchable, leaveIn, up
       <div class="stop-left">
         <div class="stop-eyebrow">${eyebrow}</div>
         <div class="stop-name-row">
-          ${PIN_SVG}
+          ${getPinSVG()}
           <div class="stop-name btn-pin" data-stop="${nearest.name}">${formatStopName(nearest.name)}</div>
         </div>
         <div class="stop-dist">${distLabel} · ${walkLabel}</div>
@@ -988,6 +1076,9 @@ pickerList.addEventListener('click', e => {
   closePicker();
   doRefresh();
 });
+
+applyTheme();
+document.getElementById('btn-dark-mode').addEventListener('click', toggleDark);
 
 doInit();
 

@@ -1,4 +1,4 @@
-const CACHE = 'tram-v1';
+const CACHE = 'tram-v2';
 const SHELL = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
